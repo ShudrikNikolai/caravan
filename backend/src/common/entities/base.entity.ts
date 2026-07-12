@@ -1,9 +1,9 @@
 import {
   BeforeInsert,
-  BeforeSoftRemove,
   BeforeUpdate,
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -26,13 +26,12 @@ export abstract class BaseEntity {
   })
   updatedAt: Date;
 
-  @UpdateDateColumn({
+  @DeleteDateColumn({
     name: 'deleted_at',
     type: 'timestamptz',
-    default: () => null,
     nullable: true,
   })
-  deletedAt: Date;
+  deletedAt: Date | null;
 
   @Column({
     name: 'is_deleted',
@@ -54,8 +53,15 @@ export abstract class BaseEntity {
     this.updatedAt = new Date();
   }
 
-  @BeforeSoftRemove()
-  setDeleteMetadata() {
+  softRemove(): this {
     this.deletedAt = new Date();
+    this.isDeleted = true;
+    return this;
+  }
+
+  restore(): this {
+    this.deletedAt = null;
+    this.isDeleted = false;
+    return this;
   }
 }

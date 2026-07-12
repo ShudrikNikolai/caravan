@@ -3,6 +3,7 @@ import {
   FindManyOptions,
   FindOptionsOrder,
   FindOptionsWhere,
+  QueryDeepPartialEntity,
   Repository,
 } from 'typeorm';
 import { BaseEntity } from '../entities/base.entity';
@@ -14,7 +15,7 @@ import {
   SortOptions,
 } from '../interfaces/repository.interface';
 import { AbstractBaseRepository } from './abstract-base.repository';
-
+// TODO обновить типы и интерфейс
 export abstract class TypeOrmRepository<
   T extends BaseEntity,
 > extends AbstractBaseRepository<T> {
@@ -90,7 +91,7 @@ export abstract class TypeOrmRepository<
     this.validateId(id);
     this.validateEntity(data);
 
-    await this.repository.update(id, data as any);
+    await this.repository.update(id, data as QueryDeepPartialEntity<T>);
     return this.findById(id);
   }
 

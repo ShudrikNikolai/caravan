@@ -1,10 +1,10 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import setupSwagger from './swagger';
-import { ValidationPipe, VersioningType } from '@nestjs/common';
+import { VersioningType } from '@nestjs/common';
 import { LoggerService } from '@/infra/logger/logger.service';
 import { ConfigService } from './config';
-
+// TODO добавить линтер на пакеты
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true,
@@ -21,12 +21,6 @@ async function bootstrap() {
     type: VersioningType.URI,
     defaultVersion: config.app.version,
   });
-
-  app.useGlobalPipes(
-    new ValidationPipe({
-      // TODO
-    }),
-  );
 
   setupSwagger(app, config, logger);
 
