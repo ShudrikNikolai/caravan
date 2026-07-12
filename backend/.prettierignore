@@ -1,0 +1,6 @@
+*.lock
+*.*ignore
+./node_modules
+./dist
+.env
+.env-example
