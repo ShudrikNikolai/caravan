@@ -34,10 +34,11 @@ export class RedisService implements OnModuleDestroy {
     this.client.on('ready', () => {
       this.logger.info('Redis is ready');
     });
+  }
 
-    this.client.connect().catch((err) => {
-      this.logger.error('Failed to connect to Redis', err);
-    });
+  async onModuleInit(): Promise<void> {
+    await this.client.connect();
+    this.logger.info('Connected to Redis');
   }
 
   async onModuleDestroy() {
@@ -45,7 +46,7 @@ export class RedisService implements OnModuleDestroy {
     this.logger.info('Redis connection closed');
   }
 
-  async set(key: string, value: any, ttl?: number): Promise<void> {
+  async set(key: string, value: unknown, ttl?: number): Promise<void> {
     try {
       const serialized =
         typeof value === 'string' ? value : JSON.stringify(value);
@@ -60,7 +61,7 @@ export class RedisService implements OnModuleDestroy {
     }
   }
 
-  async get<T = any>(key: string): Promise<T | null> {
+  async get<T = unknown>(key: string): Promise<T | null> {
     try {
       const value = await this.client.get(key);
       if (!value) return null;

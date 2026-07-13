@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import CONSTS from '../consts';
 import { RedisService } from '@/infrastructure/redis/redis.service';
-
+// TODO RedisService - бульшую часть можно в реп выкинуть
 export interface SessionData {
   // TODO
   sid: string;

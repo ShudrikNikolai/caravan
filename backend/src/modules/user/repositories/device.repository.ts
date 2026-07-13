@@ -6,7 +6,7 @@ import { TypeOrmRepository } from '@/common/repositories/typeorm.repository';
 
 @Injectable()
 export class UserDeviceRepository extends TypeOrmRepository<UserDevice> {
-  protected readonly entityName = UserDeviceRepository.name;
+  protected readonly entityName = UserDevice.name;
 
   constructor(
     @InjectRepository(UserDevice)

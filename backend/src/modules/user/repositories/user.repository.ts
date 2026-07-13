@@ -12,7 +12,7 @@ export class UserRepository
   extends TypeOrmRepository<User>
   implements IUserRepository
 {
-  protected readonly entityName = UserRepository.name;
+  protected readonly entityName = User.name;
 
   constructor(
     @InjectRepository(User)
