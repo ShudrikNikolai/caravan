@@ -9,6 +9,7 @@ import { ZodValidationPipe } from 'nestjs-zod';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { UserModule } from './modules/user/user.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { CaravanModule } from './modules/caravan/caravan.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { AuthModule } from './modules/auth/auth.module';
     HealthModule,
     UserModule,
     AuthModule,
+    CaravanModule,
   ],
   controllers: [],
   providers: [

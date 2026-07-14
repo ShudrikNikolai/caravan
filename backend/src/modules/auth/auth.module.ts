@@ -13,7 +13,6 @@ import { RefreshTokenRepository } from './repositories/refresh-token.repository'
 import { SessionService } from './services/session.service';
 import { LocalStrategy } from './strategies/local.strategy';
 import { JwtRefreshStrategy } from './strategies/refresh-token.strategy';
-import { RedisModule } from '@/infrastructure/redis/redis.module';
 
 @Module({
   imports: [
@@ -33,7 +32,6 @@ import { RedisModule } from '@/infrastructure/redis/redis.module';
       },
       inject: [ConfigService],
     }),
-    RedisModule,
   ],
   providers: [
     AuthService,

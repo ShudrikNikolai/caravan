@@ -6,7 +6,7 @@ import { TypeOrmRepository } from '@/common/repositories/typeorm.repository';
 
 @Injectable()
 export class RefreshTokenRepository extends TypeOrmRepository<RefreshToken> {
-  protected readonly entityName = RefreshToken.name || 'RefreshToken';
+  protected readonly entityName = RefreshToken.name;
 
   constructor(
     @InjectRepository(RefreshToken)
