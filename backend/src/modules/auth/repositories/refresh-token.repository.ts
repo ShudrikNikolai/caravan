@@ -16,7 +16,7 @@ export class RefreshTokenRepository extends TypeOrmRepository<RefreshToken> {
   }
 
   async findByToken(jti: string): Promise<RefreshToken | null> {
-    return this.findOne({ jti }, undefined, undefined, ['user']);
+    return this.findOne({ jti }, undefined, undefined, RefreshToken['user']);
   }
 
   // запилить транзакцию на основные методы создания и обновления по работе с токеном TODO.

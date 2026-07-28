@@ -7,7 +7,6 @@ import { Configs } from './configs';
 @Module({
   imports: [
     NestConfigModule.forRoot({
-      isGlobal: true,
       load: [...Configs],
       // envFilePath: `.env.${process.env.NODE_ENV || 'development'}`,
       // validationOptions: {

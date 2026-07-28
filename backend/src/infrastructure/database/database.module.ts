@@ -3,7 +3,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigService } from '@/config';
 
 const entities = [];
-// TODO? Global?
 @Module({
   imports: [
     TypeOrmModule.forRootAsync({

@@ -1,4 +1,5 @@
 import { IApiResponse } from '@/common/interfaces/api-response.interface';
+import { ConfigService } from '@/config';
 import {
   ArgumentsHost,
   Catch,
@@ -11,7 +12,10 @@ import { PinoLogger } from 'nestjs-pino';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
-  constructor(private readonly logger: PinoLogger) {}
+  constructor(
+    private readonly logger: PinoLogger,
+    private readonly cfg: ConfigService,
+  ) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     this.logger.setContext(HttpExceptionFilter.name);
@@ -38,8 +42,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
         errors = exeRes?.errors || [];
       }
     } else if (exception instanceof Error) {
-      // TODO сделать флаг только для дева -> message = `${exception.name}: ${exception.message}`;
       message = 'Internal Server Error';
+      if (this.cfg.isDev) {
+        message = `${exception.name}: ${exception.message}`; // Только для дебага на деве
+      }
       this.logger.error({ err: exception }, 'Unhandled exception');
     }
 
