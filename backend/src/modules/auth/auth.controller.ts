@@ -10,10 +10,10 @@ import {
 import { ApiBearerAuth } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { CurrentUser, Public } from './decorators';
-import type { LoginDto } from './dto/login.dto';
+import type { LoginDto } from './schemas/login.schema';
 import { RefreshTokenGuard } from './guards';
 import { AuthService } from './services/auth.service';
-import type { StrictRegisterDto } from './dto/register.dto';
+import type { StrictRegisterDto } from './schemas/register.schema';
 import { Tokens } from './interfaces/tokens.interface';
 // TODO validate zod
 @Controller('auth')

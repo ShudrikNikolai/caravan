@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserService } from './services/user.service';
-import type { UpdateUserDto } from './dto/user-update.dto';
+import type { UpdateUserDto } from './schemas/user-update.schema';
 
 @ApiTags('Users')
 @Controller('users')

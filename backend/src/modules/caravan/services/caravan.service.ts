@@ -21,7 +21,7 @@ import {
   checkWinner,
 } from '../domain/rules';
 import { isFaceCard, isJoker, isNumberCard } from '../domain/card';
-import { ClientEvent } from '../dto/ws-events.schema';
+import { ClientEvent } from '../schemas/ws-events.schema';
 
 type Players = [GameState['players'][0], GameState['players'][1]];
 

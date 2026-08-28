@@ -9,12 +9,12 @@ import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '../../user/entities/user.entity';
 import { UserRepository } from '../../user/repositories/user.repository';
-import { LoginDto } from '../dto/login.dto';
-import { RefreshTokenDto } from '../dto/refresh-token.dto';
+import { LoginDto } from '../schemas/login.schema';
+import { RefreshTokenDto } from '../schemas/refresh-token.schema';
 import { Tokens } from '../interfaces/tokens.interface';
 import { RefreshTokenRepository } from '../repositories/refresh-token.repository';
 import { SessionService } from './session.service';
-import { StrictRegisterDto } from '../dto/register.dto';
+import { StrictRegisterDto } from '../schemas/register.schema';
 import { RefreshTokenPayload } from '../interfaces/refresh-token.interface';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
 
@@ -22,7 +22,7 @@ const DEFAULT_TIME = 7 * 24 * 60 * 60 * 1000;
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly userRepository: UserRepository,
+    private readonly userRepository: UserRepository, // TODO контракт
     private readonly refreshTokenRepository: RefreshTokenRepository,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
@@ -130,7 +130,7 @@ export class AuthService {
     }
 
     const user = await this.userRepository.findUserById(userId);
-    if (!user || user.isDeleted) {
+    if (!user || user.deletedAt) {
       throw new UnauthorizedException('User not found or inactive');
     }
 
@@ -278,17 +278,19 @@ export class AuthService {
     }
 
     // Возвращаем refresh tokens как альтернативу
-    return this.refreshTokenRepository.findMany(
-      { userId, isRevoked: false },
-      undefined,
-      { createdAt: 'DESC' },
-    );
+    // return this.refreshTokenRepository.findMany({
+    //   filter: { userId, isRevoked: false },
+    //   sort: { field: 'createdAt', direction: 'DESC' }
+    // });
+    //
+    return []
   }
+
 
   async validateUser(login: string, password: string): Promise<User | null> {
     const user = await this.userRepository.findByUsername(login);
 
-    if (!user || user.isDeleted || !user.passwordHash) {
+    if (!user || user.deletedAt || !user.passwordHash) {
       return null;
     }
 

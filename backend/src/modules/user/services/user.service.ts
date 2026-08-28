@@ -3,10 +3,10 @@ import {
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateUserDto } from '../dto/create-user.dto';
+import { CreateUserDto } from '../schemas/create-user.schema';
 import { User } from '../entities/user.entity';
 import * as bcrypt from 'bcrypt';
-import { UpdateUserDto } from '../dto/user-update.dto';
+import { UpdateUserDto } from '../schemas/user-update.schema';
 import { UserDeviceRepository } from '../repositories/device.repository';
 import { UserRepository } from '../repositories/user.repository';
 

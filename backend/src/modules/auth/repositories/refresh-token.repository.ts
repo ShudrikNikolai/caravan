@@ -16,7 +16,10 @@ export class RefreshTokenRepository extends TypeOrmRepository<RefreshToken> {
   }
 
   async findByToken(jti: string): Promise<RefreshToken | null> {
-    return this.findOne({ jti }, undefined, undefined, RefreshToken['user']);
+    return this.findOne({
+      filter: { jti },
+      relations: RefreshToken['user'],
+    }); // { jti }, undefined, undefined, RefreshToken['user']
   }
 
   // запилить транзакцию на основные методы создания и обновления по работе с токеном TODO.
@@ -41,7 +44,7 @@ export class RefreshTokenRepository extends TypeOrmRepository<RefreshToken> {
   ): Promise<void> {
     const refreshToken = await this.findByToken(jti);
     if (refreshToken && revokedBy !== refreshToken.userId) {
-      throw new Error('');
+      throw new Error(); // TODO
     }
     if (refreshToken) {
       refreshToken.revoke(revokedBy, reason);
@@ -50,7 +53,9 @@ export class RefreshTokenRepository extends TypeOrmRepository<RefreshToken> {
   }
 
   async revokeAllForUser(userId: string, revokedBy?: string): Promise<void> {
-    const tokens = await this.findMany({ userId, isRevoked: false });
+    const tokens = await this.findMany({
+      filter: { userId, isRevoked: false },
+    });
 
     for (const token of tokens) {
       token.revoke(revokedBy, 'Revoked all tokens');

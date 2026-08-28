@@ -4,7 +4,10 @@ import { DataSource, EntityManager, Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { ICreateUserData, IUserRepository } from '../interfaces/user.interface';
 import { TypeOrmRepository } from '@/common/repositories/typeorm.repository';
-import { UpdateUserDbSchema, UpdateUserDto } from '../dto/user-update.dto';
+import {
+  UpdateUserDbSchema,
+  UpdateUserDto,
+} from '../schemas/user-update.schema';
 import { PinoLogger } from 'nestjs-pino';
 //TODO обновить и переделать входные параметры
 @Injectable()
@@ -26,11 +29,11 @@ export class UserRepository
   }
 
   async countUsers(filter: Partial<User>): Promise<number> {
-    return this.count(filter);
+    return this.count({ filter });
   }
 
   async existsUser(filter: Partial<User>): Promise<boolean> {
-    return this.exists(filter);
+    return this.exists({ filter });
   }
 
   async findUserById(id: string): Promise<User | null> {
@@ -39,24 +42,20 @@ export class UserRepository
 
   async findByUsername(username: string): Promise<User | null> {
     return this.findOne({
-      username,
+      filter: { username },
     });
   }
 
   async updateUserById(id: string, data: UpdateUserDto): Promise<User | null> {
     const updateDbData = UpdateUserDbSchema.parse(data);
-    return this.updateAndReturn(id, updateDbData);
+    return this.update(id, updateDbData);
   }
 
   async updateUserPassword(
     id: string,
     passwordHash: string,
   ): Promise<User | null> {
-    return this.updateAndReturn(id, { passwordHash });
-  }
-
-  async softDeleteUser(userId: string, deletedBy?: string): Promise<boolean> {
-    return this.softDelete(userId, deletedBy);
+    return this.update(id, { passwordHash });
   }
 
   async createWithTransaction(userData: ICreateUserData): Promise<User> {
