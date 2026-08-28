@@ -66,7 +66,7 @@ export class TransformInterceptor<T> implements NestInterceptor {
   ): IPaginatedResponse<T> {
     const { items, meta } = data;
     const { page, limit, total } = meta;
-    const totalPages = Math.ceil(total / limit);
+    const totalPages = limit > 0 ? Math.ceil(total / limit) : 0;
 
     return {
       status,
@@ -98,7 +98,13 @@ export class TransformInterceptor<T> implements NestInterceptor {
   }
 
   private isApiResponse(data: unknown): data is IApiResponse<T> {
-    return !!(data && typeof data === 'object' && 'status' in data);
+    return !!(
+      data &&
+      typeof data === 'object' &&
+      'status' in data &&
+      'data' in data &&
+      !('items' in data)
+    );
   }
 
   private isPaginated<K>(data: unknown): data is IRawPaginatedResult<K> {

@@ -7,9 +7,9 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { HealthModule } from './modules/health/health.module';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { UserModule } from './modules/user/user.module';
-import { AuthModule } from './modules/auth/auth.module';
-import { CaravanModule } from './modules/caravan/caravan.module';
+// import { UserModule } from './modules/user/user.module';
+// import { AuthModule } from './modules/auth/auth.module';
+// import { CaravanModule } from './modules/caravan/caravan.module';
 import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
 
 @Module({
@@ -26,9 +26,9 @@ import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
       ],
     }),
     HealthModule,
-    UserModule,
-    AuthModule,
-    CaravanModule,
+    // UserModule,
+    // AuthModule,
+    // CaravanModule,
   ],
   controllers: [],
   providers: [

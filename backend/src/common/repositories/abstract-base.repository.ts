@@ -1,98 +1,53 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
 import {
+  FindOptions,
   IBaseRepository,
-  SelectOptions,
-  SortOptions,
+  PaginatedResult,
+  PaginationOptions,
 } from '../interfaces/repository.interface';
 
-export abstract class AbstractBaseRepository<T> implements IBaseRepository<T> {
+export abstract class AbstractBaseRepository<
+  T,
+  ID = string,
+> implements IBaseRepository<T, ID> {
   protected abstract entityName: string;
-
-  abstract findById(id: string): Promise<T | null>;
-
-  abstract findOne(filter?: Partial<T>): Promise<T | null>;
-
-  abstract findMany(filter?: Partial<T>): Promise<T[]>;
-
-  abstract create(data: Partial<T>): Promise<T>;
-
-  abstract update(id: string, data: Partial<T>): Promise<T | null>;
-
-  abstract delete(id: string): Promise<boolean>;
-
-  abstract softDelete(id: string, deletedBy?: string): Promise<boolean>;
-
-  abstract restore(id: string, restoredBy?: string): Promise<boolean>;
-
-  abstract count(filter?: Partial<T>): Promise<number>;
-
-  abstract exists(filter?: Partial<T>): Promise<boolean>;
-
-  abstract findPaginated(
-    page: number,
-    limit: number,
-    filter: Partial<T>,
-    fields?: SelectOptions<T>,
-    sort?: SortOptions<T>,
-    relations?: string[],
-  ): Promise<{ data: T[]; total: number; page: number; limit: number }>;
-
-  protected validateId(id: string): void {
-    if (!id) {
-      throw new BadRequestException(`${this.entityName} ID cannot be empty`);
+  protected validateId(id: ID): void {
+    // uuid
+    if (id === undefined || id === null || id === '') {
+      throw new Error(`${this.entityName} ID cannot be empty`);
     }
   }
 
-  protected validateEntity(data: Partial<T>): void {
-    if (!data) {
-      throw new Error(`${this.entityName} data cannot be null or undefined`);
+  protected validateObjectId(id: ID): void {
+    if (id === undefined || id === null) {
+      //  || id === '' при монге ObjectId - падает
+      throw new Error(`${this.entityName} ID cannot be empty`);
     }
   }
 
-  protected validateFilter(filter: Partial<T>): void {
-    if (filter && typeof filter !== 'object') {
+  protected validateFilter(filter?: unknown): void {
+    if (
+      filter !== undefined &&
+      (typeof filter !== 'object' || filter === null)
+    ) {
       throw new Error('Filter must be an object');
     }
   }
 
-  async findByIdOrFail(id: string): Promise<T> {
-    const entity = await this.findById(id);
-    if (!entity) {
-      throw new NotFoundException(`${this.entityName} with ID ${id} not found`);
-    }
-    return entity;
-  }
+  abstract findById(id: ID): Promise<T | null>;
+  abstract findOne(options?: FindOptions<T>): Promise<T | null>;
+  abstract findMany(options?: FindOptions<T>): Promise<T[]>;
 
-  async findOneOrFail(filter: Partial<T>): Promise<T> {
-    const entity = await this.findOne(filter);
-    if (!entity) {
-      throw new Error(`${this.entityName} not found with given filter`);
-    }
-    return entity;
-  }
+  abstract create(data: Partial<T>): Promise<T>;
+  abstract update(id: ID, data: Partial<T>): Promise<T | null>;
+  abstract delete(id: ID): Promise<boolean>;
 
-  async createAndReturn(data: Partial<T>): Promise<T> {
-    this.validateEntity(data);
-    return this.create(data);
-  }
+  abstract count(options?: FindOptions<T>): Promise<number>;
+  abstract exists(options?: FindOptions<T>): Promise<boolean>;
 
-  async updateAndReturn(id: string, data: Partial<T>): Promise<T> {
-    this.validateId(id);
-    this.validateEntity(data);
+  abstract findPaginated(
+    options: PaginationOptions<T>,
+  ): Promise<PaginatedResult<T>>;
 
-    const updated = await this.update(id, data);
-    if (!updated) {
-      throw new Error(`Failed to update ${this.entityName} with ID ${id}`);
-    }
-    return updated;
-  }
-
-  async deleteOrFail(id: string): Promise<boolean> {
-    this.validateId(id);
-    const deleted = await this.delete(id);
-    if (!deleted) {
-      throw new Error(`Failed to delete ${this.entityName} with ID ${id}`);
-    }
-    return deleted;
-  }
+  abstract softDelete(id: ID): Promise<boolean>;
+  abstract restore(id: ID): Promise<boolean>;
 }

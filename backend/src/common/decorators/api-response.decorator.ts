@@ -1,49 +1,50 @@
-import { applyDecorators, SetMetadata } from '@nestjs/common';
-import { ApiResponse as SwaggerApiResponse } from '@nestjs/swagger';
+import { applyDecorators, Type } from '@nestjs/common';
+import { ApiExtraModels, ApiResponse, getSchemaPath } from '@nestjs/swagger';
 
 export interface IApiResponseOptions {
   status?: number;
-  message?: string;
-  example?: any;
+  example?: unknown;
+  description?: string;
   isArray?: boolean;
-  isPaginated?: boolean;
 }
 
-export const API_RESPONSE_METADATA = 'api_response_metadata' as const;
+export function ApiStandardResponse(
+  model: Type<unknown>,
+  options: IApiResponseOptions = {},
+) {
+  const status = options.status ?? 200;
+  const description = options.description ?? `Response ${status}`;
 
-export function ApiResponse(options: IApiResponseOptions) {
   return applyDecorators(
-    SetMetadata(API_RESPONSE_METADATA, options),
-    SwaggerApiResponse({
-      status: options.status || 200,
-      description: options.message || 'Success',
+    ApiExtraModels(model),
+
+    ApiResponse({
+      status,
+      description: description,
+      ...(options.example !== undefined && { example: options.example }),
       schema: {
+        type: 'object',
         properties: {
-          status: { type: 'number', example: options.status || 200 },
-          message: { type: 'string', example: options.message || 'Success' },
+          status: {
+            type: 'number',
+            example: status,
+          },
           data: options.isArray
-            ? { type: 'array', items: { type: 'object' } }
-            : { type: 'object' },
-          timestamp: { type: 'string', example: '2025-12-12T10:30:00.000Z' },
+            ? {
+                type: 'array',
+                items: {
+                  $ref: getSchemaPath(model),
+                },
+              }
+            : {
+                $ref: getSchemaPath(model),
+              },
+          timestamp: {
+            type: 'string',
+            format: 'date-time',
+          },
         },
       },
     }),
   );
-}
-
-export function ApiCreatedResponse(message?: string, example?: unknown) {
-  return ApiResponse({ status: 201, message: message || 'Created', example });
-}
-
-export function ApiOkResponse(message?: string, example?: unknown) {
-  return ApiResponse({ status: 200, message: message || 'OK', example });
-}
-
-export function ApiPaginatedResponse(message?: string, example?: unknown) {
-  return ApiResponse({
-    status: 200,
-    message: message || 'Success',
-    example,
-    isPaginated: true,
-  });
 }

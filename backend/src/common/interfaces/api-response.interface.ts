@@ -1,13 +1,23 @@
-export interface IApiResponse<T = unknown> {
-  status: number;
-  message?: string;
-  data?: T | { items: T[] };
-  errors?: T[];
-  timestamp?: string;
-  query?: Record<string, unknown> | null;
+type ValidationDetail = string | { field?: string; message: string };
+
+type Data = 'data';
+
+type Order = 'ASC' | 'DESC';
+
+export interface IApiError {
+  details: ValidationDetail[] | unknown[];
+  message: string;
 }
 
-export interface IPaginatedResponse<T> extends Omit<IApiResponse<T>, 'data'> {
+export interface IApiResponse<T = unknown> {
+  status: number;
+  data?: T;
+  errors?: IApiError;
+  timestamp?: string;
+  query?: IQueryParams | null;
+}
+
+export interface IPaginatedResponse<T> extends Omit<IApiResponse<T>, Data> {
   data: T[];
   meta: {
     page: number;
@@ -25,7 +35,7 @@ export interface IQueryParams {
   page?: number;
   limit?: number;
   sort?: string;
-  order?: 'ASC' | 'DESC';
+  order?: Order;
   [key: string]: unknown;
 }
 

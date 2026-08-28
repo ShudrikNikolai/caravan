@@ -1,212 +1,162 @@
 import {
-  DeepPartial,
-  FindManyOptions,
-  FindOptionsOrder,
-  FindOptionsWhere,
-  QueryDeepPartialEntity,
   Repository,
+  FindOptionsWhere,
+  FindManyOptions,
+  FindOptionsSelect,
+  FindOptionsOrder,
+  FindOptionsRelations,
+  QueryDeepPartialEntity,
 } from 'typeorm';
+import { AbstractBaseRepository } from './abstract-base.repository';
 import { BaseEntity } from '../entities/base.entity';
 import {
-  FieldsInput,
-  IDeleteEntity,
-  IRestoreEntity,
-  SelectOptions,
-  SortOptions,
+  FindOptions,
+  PaginatedResult,
+  PaginationOptions,
+  SortOption,
 } from '../interfaces/repository.interface';
-import { AbstractBaseRepository } from './abstract-base.repository';
-// TODO обновить типы и интерфейс
+
 export abstract class TypeOrmRepository<
   T extends BaseEntity,
-> extends AbstractBaseRepository<T> {
+  ID = string,
+> extends AbstractBaseRepository<T, ID> {
   constructor(protected readonly repository: Repository<T>) {
     super();
   }
-  async exists(filter: Partial<T>, relations?: string[]): Promise<boolean> {
-    this.validateFilter(filter);
-    const options = this.normalizeOptions(
-      filter,
-      undefined,
-      undefined,
-      relations,
-    );
-    return this.repository.exists(options);
-  }
 
-  async count(filter: Partial<T>, relations?: string[]): Promise<number> {
-    this.validateFilter(filter);
-    const options = this.normalizeOptions(
-      filter,
-      undefined,
-      undefined,
-      relations,
-    );
-    return this.repository.count(options);
-  }
-
-  async findById(
-    id: string,
-    fields?: SelectOptions<T>,
-    relations?: string[],
-  ): Promise<T | null> {
+  async findById(id: ID): Promise<T | null> {
     this.validateId(id);
-    const options = this.normalizeOptions(
-      { id } as Partial<T>,
-      fields,
-      undefined,
-      relations,
-    );
-    return this.repository.findOne(options);
+    return this.repository.findOne({
+      where: { id } as FindOptionsWhere<T>,
+    });
   }
 
-  async findOne(
-    filter: Partial<T>,
-    fields?: SelectOptions<T>,
-    sort?: SortOptions<T>,
-    relations?: string[],
-  ): Promise<T | null> {
-    this.validateFilter(filter);
-    const options = this.normalizeOptions(filter, fields, sort, relations);
-    return this.repository.findOne(options);
+  async findOne(options?: FindOptions<T>): Promise<T | null> {
+    this.validateFilter(options?.filter);
+    return this.repository.findOne(this.buildFindOptions(options));
   }
 
-  async findMany(
-    filter: Partial<T>,
-    fields?: SelectOptions<T>,
-    sort?: SortOptions<T>,
-    relations?: string[],
-  ): Promise<T[]> {
-    this.validateFilter(filter);
-    const options = this.normalizeOptions(filter, fields, sort, relations);
-    return this.repository.find(options);
+  async findMany(options?: FindOptions<T>): Promise<T[]> {
+    this.validateFilter(options?.filter);
+    return this.repository.find(this.buildFindOptions(options));
   }
 
   async create(data: Partial<T>): Promise<T> {
-    this.validateEntity(data);
-    const entity: T = this.repository.create(data as DeepPartial<T>);
+    const entity = this.repository.create(data as T);
     return this.repository.save(entity);
   }
 
-  async update(id: string, data: Partial<T>): Promise<T | null> {
-    this.validateId(id);
-    this.validateEntity(data);
+  async count(options?: FindOptions<T>): Promise<number> {
+    this.validateFilter(options?.filter);
+    return this.repository.count(this.buildFindOptions(options));
+  }
 
-    await this.repository.update(id, data as QueryDeepPartialEntity<T>);
+  async exists(options?: FindOptions<T>): Promise<boolean> {
+    this.validateFilter(options?.filter);
+    return this.repository.exists(this.buildFindOptions(options));
+  }
+
+  async update(id: ID, data: Partial<T>): Promise<T | null> {
+    this.validateId(id);
+    const ID = id as FindOptionsWhere<T>['id'] as string;
+    const d = data as QueryDeepPartialEntity<T>;
+    await this.repository.update(ID, d);
     return this.findById(id);
   }
 
-  async delete(id: string): Promise<boolean> {
+  async delete(id: ID): Promise<boolean> {
     this.validateId(id);
-    const result = await this.repository.delete(id);
-
+    const result = await this.repository.delete(
+      id as FindOptionsWhere<T>['id'] as string,
+    );
     return (result.affected || 0) > 0;
   }
 
-  async softDelete(id: string, deletedBy?: string): Promise<boolean> {
+  async softDelete(id: ID): Promise<boolean> {
     this.validateId(id);
-
-    const deleteEntity: IDeleteEntity = {
-      isDeleted: true,
-      deletedAt: new Date(),
-    };
-
-    if (deletedBy) {
-      deleteEntity.deletedBy = deletedBy;
-    }
-
-    const result = await this.repository.update(id, deleteEntity as any);
-
+    const result = await this.repository.softDelete(
+      id as FindOptionsWhere<T>['id'] as string,
+    );
     return (result.affected || 0) > 0;
   }
 
-  async restore(id: string, restoredBy?: string): Promise<boolean> {
+  async restore(id: ID): Promise<boolean> {
     this.validateId(id);
-    const restoredEntity: IRestoreEntity = {
-      isDeleted: false,
-      deletedAt: null,
-    };
-
-    if (restoredBy) {
-      restoredEntity.restoredBy = restoredBy;
-    }
-
-    const result = await this.repository.update(id, restoredEntity as any);
+    const result = await this.repository.restore(
+      id as FindOptionsWhere<T>['id'] as string,
+    );
     return (result.affected || 0) > 0;
   }
 
   async findPaginated(
-    page: number,
-    limit: number,
-    filter: Partial<T>,
-    fields?: SelectOptions<T>,
-    sort?: SortOptions<T>,
-    relations?: string[],
-  ): Promise<{ data: T[]; total: number; page: number; limit: number }> {
-    this.validateFilter(filter);
+    options: PaginationOptions<T>,
+  ): Promise<PaginatedResult<T>> {
+    this.validateFilter(options.filter);
+    const { page, limit } = options;
+    const findOptions = this.buildFindOptions(options);
+    findOptions.skip = (page - 1) * limit;
+    findOptions.take = limit;
 
-    const options = this.normalizeOptions(filter, fields, sort, relations, {
-      page,
-      limit,
-    });
-
-    const [data, total] = await this.repository.findAndCount(options);
+    const [data, total] = await this.repository.findAndCount(findOptions);
+    const totalPages = limit > 0 ? Math.ceil(total / limit) : 0;
 
     return {
       data,
-      total,
-      page,
-      limit,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
     };
   }
 
-  private normalizeSelect<T>(fields: FieldsInput<T>): SelectOptions<T> {
-    if (Array.isArray(fields)) {
-      return fields.reduce((acc, field) => {
-        (acc as any)[field] = true;
-        return acc;
-      }, {} as SelectOptions<T>);
-    }
-    return fields;
-  }
+  private buildFindOptions(options?: FindOptions<T>): FindManyOptions<T> {
+    const findOptions: FindManyOptions<T> = {};
 
-  private normalizeOptions<T>(
-    filter: Partial<T>,
-    fields?: SelectOptions<T>,
-    sort?: SortOptions<T>,
-    relations?: string[],
-    pagination?: { page: number; limit: number },
-  ): FindManyOptions<T> {
-    const options: FindManyOptions<T> = {
-      where: { ...filter, isDeleted: false } as FindOptionsWhere<T>,
-    };
-
-    // Обработка выбора полей
-    if (fields && Object.keys(fields).length > 0) {
-      options.select = this.normalizeSelect(fields);
+    if (options?.filter) {
+      findOptions.where = options.filter as FindOptionsWhere<T>;
     }
 
-    // Обработка сортировки
-    if (sort && Object.keys(sort).length > 0) {
-      options.order = sort as FindOptionsOrder<T>;
+    if (options?.select && options.select.length > 0) {
+      findOptions.select = this.toSelectOptions(options.select);
+    }
+
+    if (options?.sort && options.sort.length > 0) {
+      findOptions.order = this.toOrderOptions(options.sort);
     } else {
-      const baseOrder: FindOptionsOrder<{ createdAt: 'DESC' }> = {
+      findOptions.order = {
         createdAt: 'DESC',
-      };
-      options.order = baseOrder as FindOptionsOrder<T>;
+      } as FindOptionsOrder<T>;
     }
 
-    // Обработка связей
-    if (relations && relations.length > 0) {
-      // @ts-ignore
-      options.relations = relations;
+    if (options?.relations && options.relations.length > 0) {
+      findOptions.relations = this.toRelationsOptions(options.relations);
     }
 
-    // Обработка пагинации
-    if (pagination) {
-      options.skip = (pagination.page - 1) * pagination.limit;
-      options.take = pagination.limit;
-    }
+    return findOptions;
+  }
 
-    return options;
+  private toSelectOptions(fields: Array<keyof T>): FindOptionsSelect<T> {
+    return fields.reduce((acc, field) => {
+      (acc as Record<string, boolean>)[field as string] = true;
+      return acc;
+    }, {} as FindOptionsSelect<T>);
+  }
+
+  private toOrderOptions(sort: SortOption<T>[]): FindOptionsOrder<T> {
+    return sort.reduce((acc, { field, direction }) => {
+      (acc as Record<string, 'ASC' | 'DESC'>)[field as string] = direction;
+      return acc;
+    }, {} as FindOptionsOrder<T>);
+  }
+
+  private toRelationsOptions(relations: string[]): FindOptionsRelations<T> {
+    return relations.reduce((acc, relation) => {
+      (acc as Record<string, boolean>)[relation] = true;
+      return acc;
+    }, {} as FindOptionsRelations<T>);
   }
 }

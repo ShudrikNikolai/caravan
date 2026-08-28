@@ -22,6 +22,11 @@ async function bootstrap() {
     defaultVersion: config.app.version,
   });
 
+  app.enableCors({
+    origin: '*', //process.env.APP_BASE_URL, // TODO
+    credentials: true,
+  });
+
   setupSwagger(app, config, logger);
 
   await app.listen(config.app.port);

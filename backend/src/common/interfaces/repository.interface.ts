@@ -1,50 +1,50 @@
-import { FindOptionsOrder, FindOptionsSelect } from 'typeorm';
-
-export type FieldsInput<T> = SelectOptions<T> | (keyof T)[];
-
-export type SelectOptions<T> = FindOptionsSelect<T>;
-export type SortOptions<T> = FindOptionsOrder<T>;
-
-export interface IBaseRepository<T> {
-  findById(id: string): Promise<T | null>;
-  findOne(filter?: Partial<T>): Promise<T | null>;
-  findMany(filter?: Partial<T>): Promise<T[]>;
+export interface IBaseRepository<T, ID = string> {
+  findById(id: ID): Promise<T | null>;
+  findOne(options?: FindOptions<T>): Promise<T | null>;
+  findMany(options?: FindOptions<T>): Promise<T[]>;
 
   create(data: Partial<T>): Promise<T>;
-  update(id: string, data: Partial<T>): Promise<T | null>;
-  delete(id: string): Promise<boolean>;
+  update(id: ID, data: Partial<T>): Promise<T | null>;
+  delete(id: ID): Promise<boolean>;
 
-  softDelete(id: string, deleteBy?: string): Promise<boolean>;
-  restore(id: string, restoredBy?: string): Promise<boolean>;
+  count(options?: FindOptions<T>): Promise<number>;
+  exists(options?: FindOptions<T>): Promise<boolean>;
 
-  count(filter?: Partial<T>): Promise<number>;
-  exists(filter?: Partial<T>): Promise<boolean>;
+  findPaginated(options: PaginationOptions<T>): Promise<PaginatedResult<T>>;
 
-  findPaginated(
-    page: number,
-    limit: number,
-    filter: Partial<T>,
-    fields?: SelectOptions<T>,
-    sort?: SortOptions<T>,
-    relations?: string[],
-  ): Promise<{ data: T[]; total: number; page: number; limit: number }>;
+  softDelete(id: ID): Promise<boolean>;
+  restore(id: ID): Promise<boolean>;
 }
 
-export interface ITransactionalRepository<T> extends IBaseRepository<T> {
-  withTransaction<R>(
-    operation: (repository: IBaseRepository<T>) => Promise<R>,
-  ): Promise<R>;
+export interface PaginationOptions<T> extends FindOptions<T> {
+  page: number;
+  limit: number;
 }
 
-export interface IDeleteEntity {
-  isDeleted: boolean;
-  deletedAt: Date | null;
-  deletedBy?: string | null;
+export interface SortOption<T> {
+  field: keyof T;
+  direction: 'ASC' | 'DESC';
 }
 
-export interface IRestoreEntity {
-  isDeleted: boolean;
-  deletedAt: Date | null;
-  deletedBy?: string | null;
-  restoredBy?: string | null;
+export interface FindOptions<T> {
+  filter?: Partial<T>;
+  select?: Array<keyof T>;
+  sort?: SortOption<T>[];
+  relations?: string[];
+}
+
+export type CreateData<T> = Partial<T>;
+
+export type UpdateData<T> = Partial<T>;
+
+export interface PaginatedResult<T> {
+  data: T[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
 }

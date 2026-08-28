@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { PinoLogger } from 'nestjs-pino';
+import { API_RESPONSE_ERROR } from '../utils/const.util';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -24,7 +25,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message = 'Internal Server Error';
+    let message = API_RESPONSE_ERROR.INTERNAL_SERVER_ERROR;
     let errors: unknown[] = [];
 
     if (exception instanceof HttpException) {
@@ -38,15 +39,23 @@ export class HttpExceptionFilter implements ExceptionFilter {
           message?: string;
           errors?: unknown[];
         };
-        message = exeRes?.message || message;
-        errors = exeRes?.errors || [];
+        if (Array.isArray(exeRes.message)) {
+          message = API_RESPONSE_ERROR.VALIDATION_FAILED;
+          errors = exeRes.message;
+        } else {
+          message = exeRes?.message || message;
+          errors = exeRes?.errors || [];
+        }
       }
     } else if (exception instanceof Error) {
-      message = 'Internal Server Error';
+      message = API_RESPONSE_ERROR.INTERNAL_SERVER_ERROR;
       if (this.cfg.isDev) {
         message = `${exception.name}: ${exception.message}`; // Только для дебага на деве
       }
-      this.logger.error({ err: exception }, 'Unhandled exception');
+      this.logger.error(
+        { err: exception },
+        API_RESPONSE_ERROR.UNHANDLED_EXCEPTION,
+      );
     }
 
     this.logger.error(
@@ -61,8 +70,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     const apiResponse: IApiResponse = {
       status,
-      message,
-      errors,
+      errors: {
+        details: errors,
+        message,
+      },
       timestamp: new Date().toISOString(),
     };
 

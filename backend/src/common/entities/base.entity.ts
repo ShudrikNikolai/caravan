@@ -1,7 +1,4 @@
 import {
-  BeforeInsert,
-  BeforeUpdate,
-  Column,
   CreateDateColumn,
   DeleteDateColumn,
   PrimaryGeneratedColumn,
@@ -15,14 +12,12 @@ export abstract class BaseEntity {
   @CreateDateColumn({
     name: 'created_at',
     type: 'timestamptz',
-    default: () => 'CURRENT_TIMESTAMP',
   })
   createdAt: Date;
 
   @UpdateDateColumn({
     name: 'updated_at',
     type: 'timestamptz',
-    default: () => 'CURRENT_TIMESTAMP',
   })
   updatedAt: Date;
 
@@ -32,36 +27,4 @@ export abstract class BaseEntity {
     nullable: true,
   })
   deletedAt: Date | null;
-
-  @Column({
-    name: 'is_deleted',
-    type: 'boolean',
-    default: false,
-  })
-  isDeleted: boolean;
-
-  @BeforeInsert()
-  setCreationMetadata() {
-    if (!this.createdAt) {
-      this.createdAt = new Date();
-    }
-    this.updatedAt = new Date();
-  }
-
-  @BeforeUpdate()
-  setUpdateMetadata() {
-    this.updatedAt = new Date();
-  }
-
-  softRemove(): this {
-    this.deletedAt = new Date();
-    this.isDeleted = true;
-    return this;
-  }
-
-  restore(): this {
-    this.deletedAt = null;
-    this.isDeleted = false;
-    return this;
-  }
 }
