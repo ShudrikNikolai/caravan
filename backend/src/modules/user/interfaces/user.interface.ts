@@ -1,8 +1,8 @@
 import { User } from '../entities/user.entity';
 
 export interface IUserRepository {
-  findByUsername(username: string): Promise<User | null>;
-  createWithTransaction(data: ICreateUserData): Promise<User | null>;
+  findByUsername(username: string): Promise<Partial<User> | null>;
+  createWithTransaction(data: ICreateUserData): Promise<Partial<User> | null>;
 }
 
 export interface ICreateUserData {
@@ -13,4 +13,12 @@ export interface ICreateUserData {
   country?: string | null;
   city?: string | null;
   birthDate?: Date | null;
+}
+
+export interface IUserSanitize {
+  id: string;
+  username: string;
+  country: string | null;
+  city: string | null;
+  birthDate: Date;
 }

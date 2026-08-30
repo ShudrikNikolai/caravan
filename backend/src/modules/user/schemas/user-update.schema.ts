@@ -51,15 +51,15 @@ export const UpdateUserSchema = z.object({
 });
 
 // Тип для использования в контроллерах/сервисах
-export type UpdateUserDto = z.infer<typeof UpdateUserSchema>;
+export type TUpdateUserSchema = z.infer<typeof UpdateUserSchema>;
 
 // Дополнительный вариант с partial для всех полей (если нужно)
 export const UpdateUserPartialSchema = UpdateUserSchema.partial();
 
-export type UpdateUserPartialDto = z.infer<typeof UpdateUserPartialSchema>;
+export type TUpdateUserPartialSchema = z.infer<typeof UpdateUserPartialSchema>;
 
 // Вспомогательная функция для валидации
-export function validateUpdateUser(data: unknown): UpdateUserDto {
+export function validateUpdateUser(data: unknown): TUpdateUserSchema {
   return UpdateUserSchema.parse(data);
 }
 
@@ -71,12 +71,12 @@ export function safeValidateUpdateUser(data: unknown) {
 // Пример использования с преобразованием для базы данных
 export const UpdateUserDbSchema = UpdateUserSchema.transform((data) => {
   // Убираем поля, которые не нужно обновлять
-  const dbData: Partial<UpdateUserDto> = {};
+  const dbData: Partial<TUpdateUserSchema> = {};
 
-  if (data.username !== undefined) dbData.username = data.username;
-  if (data.country !== undefined) dbData.country = data.country;
-  if (data.city !== undefined) dbData.city = data.city;
-  if (data.birthDate !== undefined) dbData.birthDate = data.birthDate;
+  if (data.username) dbData.username = data.username;
+  if (data.country) dbData.country = data.country;
+  if (data.city) dbData.city = data.city;
+  if (data.birthDate) dbData.birthDate = data.birthDate;
 
   return dbData;
 });

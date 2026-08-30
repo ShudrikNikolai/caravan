@@ -1,15 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { ICreateUserData, IUserRepository } from '../interfaces/user.interface';
 import { TypeOrmRepository } from '@/common/repositories/typeorm.repository';
-import {
-  UpdateUserDbSchema,
-  UpdateUserDto,
-} from '../schemas/user-update.schema';
+import { TUpdateUserSchema } from '../schemas/user-update.schema';
 import { PinoLogger } from 'nestjs-pino';
-//TODO обновить и переделать входные параметры
+import { DEFAULT_COUNTRY, ERRORS } from '../consts';
+
 @Injectable()
 export class UserRepository
   extends TypeOrmRepository<User>
@@ -20,8 +18,7 @@ export class UserRepository
   constructor(
     @InjectRepository(User)
     protected readonly repository: Repository<User>,
-    @InjectEntityManager()
-    private readonly entityManager: EntityManager,
+    @InjectDataSource()
     private readonly dataSource: DataSource,
     private readonly logger: PinoLogger,
   ) {
@@ -36,26 +33,33 @@ export class UserRepository
     return this.exists({ filter });
   }
 
-  async findUserById(id: string): Promise<User | null> {
-    return this.findById(id);
+  async findUserById(id: string): Promise<Partial<User> | null> {
+    const user = await this.findById(id);
+    return this.sanitize(user);
   }
 
-  async findByUsername(username: string): Promise<User | null> {
-    return this.findOne({
+  async findByUsername(username: string): Promise<Partial<User> | null> {
+    const user = await this.findOne({
       filter: { username },
     });
+    return this.sanitize(user);
   }
 
-  async updateUserById(id: string, data: UpdateUserDto): Promise<User | null> {
-    const updateDbData = UpdateUserDbSchema.parse(data);
-    return this.update(id, updateDbData);
+  async updateUserById(
+    id: string,
+    data: TUpdateUserSchema,
+  ): Promise<Partial<User> | null> {
+    const updUser = await this.update(id, data);
+    return this.sanitize(updUser);
   }
 
   async updateUserPassword(
     id: string,
     passwordHash: string,
-  ): Promise<User | null> {
-    return this.update(id, { passwordHash });
+  ): Promise<Partial<User> | null> {
+    // TODO добавить валидацию на будующее, после выноса в отдельный сервис auth
+    const user = await this.update(id, { passwordHash });
+    return this.sanitize(user);
   }
 
   async createWithTransaction(userData: ICreateUserData): Promise<User> {
@@ -73,8 +77,8 @@ export class UserRepository
         username: userData.username,
         passwordHash: userData.passwordHash ?? undefined,
         authMethod: userData.authMethod,
-        country: userData.country ?? 'Unknown',
-        city: userData.city ?? 'Unknown',
+        country: userData.country ?? DEFAULT_COUNTRY,
+        city: userData.city ?? DEFAULT_COUNTRY,
         birthDate: userData.birthDate ?? undefined,
       });
 
@@ -88,6 +92,11 @@ export class UserRepository
       throw error;
     } finally {
       await queryRunner.release();
+      this.logger.info('Transaction done');
     }
+  }
+
+  sanitize(user: User | null): Partial<User> | null {
+    return user ? user.getPublicData() : null;
   }
 }

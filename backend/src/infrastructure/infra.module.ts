@@ -9,3 +9,4 @@ const infra = [LoggerModule, DatabaseModule, RedisModule];
   exports: infra,
 })
 export class InfrastructureModule {}
+// nesths поднять графану лико и прометеус

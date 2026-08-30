@@ -9,7 +9,7 @@ import { GameHistory } from './entities/game-history.entity';
 
 @Module({
   imports: [TypeOrmModule.forFeature([GameHistory])],
-  controllers: [],
+  //controllers: [CaravanController], TODO CaravanGateway <-
   providers: [
     // CaravanGateway,
     //CaravanService,

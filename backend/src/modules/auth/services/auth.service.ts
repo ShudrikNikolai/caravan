@@ -10,7 +10,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { User } from '../../user/entities/user.entity';
 import { UserRepository } from '../../user/repositories/user.repository';
 import { LoginDto } from '../schemas/login.schema';
-import { RefreshTokenDto } from '../schemas/refresh-token.schema';
 import { Tokens } from '../interfaces/tokens.interface';
 import { RefreshTokenRepository } from '../repositories/refresh-token.repository';
 import { SessionService } from './session.service';
@@ -77,7 +76,7 @@ export class AuthService {
   }
 
   async getUserProfile(userId: string): Promise<Partial<User>> {
-    const user = await this.userRepository.findUserById(userId);
+    const user = await this.userRepository.findById(userId);
     if (!user) throw new NotFoundException('User not found');
     return user.getPublicData();
   }
@@ -129,7 +128,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    const user = await this.userRepository.findUserById(userId);
+    const user = await this.userRepository.findById(userId);
     if (!user || user.deletedAt) {
       throw new UnauthorizedException('User not found or inactive');
     }
@@ -187,7 +186,7 @@ export class AuthService {
     currentPassword: string,
     newPassword: string,
   ): Promise<boolean> {
-    const user = await this.userRepository.findUserById(userId);
+    const user = await this.userRepository.findById(userId);
 
     if (!user || !user.passwordHash) {
       throw new UnauthorizedException('User not found');
@@ -283,9 +282,8 @@ export class AuthService {
     //   sort: { field: 'createdAt', direction: 'DESC' }
     // });
     //
-    return []
+    return [];
   }
-
 
   async validateUser(login: string, password: string): Promise<User | null> {
     const user = await this.userRepository.findByUsername(login);

@@ -1,14 +1,8 @@
-import {
-  Injectable,
-  ConflictException,
-  NotFoundException,
-} from '@nestjs/common';
-import { CreateUserDto } from '../schemas/create-user.schema';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { User } from '../entities/user.entity';
-import * as bcrypt from 'bcrypt';
-import { UpdateUserDto } from '../schemas/user-update.schema';
 import { UserDeviceRepository } from '../repositories/device.repository';
 import { UserRepository } from '../repositories/user.repository';
+import { ERRORS } from '../consts';
 
 @Injectable()
 export class UserService {
@@ -16,54 +10,24 @@ export class UserService {
     private readonly userRepository: UserRepository,
     private readonly userDeviceRepository: UserDeviceRepository,
   ) {}
-  async create(createUserDto: CreateUserDto): Promise<Partial<User>> {
-    // Проверка существования пользователя
-    const existingUser = await this.userRepository.existsUser({
-      username: createUserDto.username,
-      email: createUserDto.email,
-    });
-    if (existingUser) {
-      throw new ConflictException('Email already exists');
-    }
-
-    if (!('password' in createUserDto)) {
-      //TODO еще как-то провалидировать
-      throw new ConflictException('Email already exists');
-    }
-    // Хэширование пароля
-    const passwordHash = await bcrypt.hash(createUserDto.password, 10);
-
-    // Создание с транзакцией
-    const user = await this.userRepository.createWithTransaction({
-      email: createUserDto.email,
-      username: createUserDto.username,
-      passwordHash,
-      authMethod: 'local', // oauth пока нету createUserDto.password ? 'local' : 'oauth',
-    });
-
-    return this.sanitizeUser(user);
-  }
-
   async findById(id: string): Promise<Partial<User>> {
     const user = await this.userRepository.findUserById(id);
-    if (!user) throw new NotFoundException('User not found');
-    return user.getPublicData();
+    if (!user) throw new NotFoundException(ERRORS.USER_NOT_FOUND);
+    return user;
   }
 
   async findByUsername(username: string): Promise<Partial<User> | null> {
     const user = await this.userRepository.findByUsername(username);
-    if (!user) throw new NotFoundException('User not found');
-    return this.sanitizeUser(user);
+    if (!user) throw new NotFoundException(ERRORS.USER_NOT_FOUND);
+    return user;
   }
 
   async updateById(
     id: string,
-    data: Partial<UpdateUserDto>,
-  ): Promise<User | null> {
-    return this.userRepository.update(id, data);
-  }
-
-  private sanitizeUser(user: User): Partial<User> {
-    return user.getPublicData(); // TODO
+    data: Partial<User>,
+  ): Promise<Partial<User> | null> {
+    const user = await this.userRepository.update(id, data);
+    if (!user) throw new NotFoundException(ERRORS.USER_NOT_FOUND);
+    return user;
   }
 }

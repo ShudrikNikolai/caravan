@@ -4,13 +4,14 @@ import { User } from './entities/user.entity';
 import { UserRepository } from './repositories/user.repository';
 import { UserController } from './user.controller';
 import { UserService } from './services/user.service';
+import { UserExternal } from './services/user-external.service';
 import { UserDevice } from './entities/device.entity';
 import { UserDeviceRepository } from './repositories/device.repository';
 
 @Module({
   imports: [TypeOrmModule.forFeature([User, UserDevice])],
   controllers: [UserController],
-  providers: [UserRepository, UserDeviceRepository, UserService],
-  exports: [UserService, UserRepository, UserDeviceRepository],
+  providers: [UserRepository, UserDeviceRepository, UserService, UserExternal],
+  exports: [UserExternal],
 })
 export class UserModule {}

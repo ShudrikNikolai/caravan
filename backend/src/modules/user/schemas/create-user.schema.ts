@@ -76,10 +76,10 @@ export const CreateUserSchema = z.object({
     }, 'User must be at least 13 years old'),
 });
 
-export type CreateUserDto = z.infer<typeof CreateUserSchema>;
+export type TCreateUserSchema = z.infer<typeof CreateUserSchema>;
 
 // Вспомогательные функции
-export function validateCreateUser(data: unknown): CreateUserDto {
+export function validateCreateUser(data: unknown): TCreateUserSchema {
   return CreateUserSchema.parse(data);
 }
 

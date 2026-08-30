@@ -6,11 +6,10 @@ import {
   Param,
   ParseUUIDPipe,
   Patch,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserService } from './services/user.service';
-import type { UpdateUserDto } from './schemas/user-update.schema';
+import type { TUpdateUserSchema } from './schemas/user-update.schema';
 
 @ApiTags('Users')
 @Controller('users')
@@ -29,7 +28,7 @@ export class UserController {
   @ApiOperation({ summary: 'Update current user profile' })
   async updateMe(
     @CurrentUser('id') userId: string,
-    @Body() updateUserDto: UpdateUserDto,
+    @Body() updateUserDto: TUpdateUserSchema,
   ) {
     return this.usersService.updateById(userId, updateUserDto);
   }
@@ -37,9 +36,7 @@ export class UserController {
   @Get(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get user by ID' })
-  async findOne(
-    @Param('id', ParseUUIDPipe) id: string, // TODO пркоинуть всюду ParseUUIDPipe// TODO ROLES
-  ) {
+  async findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.findById(id);
   }
 }

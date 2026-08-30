@@ -14,8 +14,4 @@ export class UserDeviceRepository extends TypeOrmRepository<UserDevice> {
   ) {
     super(repUserDevice);
   }
-
-  // async softDeleteDevice(id: string): Promise<boolean> {
-  //   return this.repUserDevice.softDelete(id);
-  // }
 }

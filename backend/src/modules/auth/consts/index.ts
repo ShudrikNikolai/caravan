@@ -1,4 +1,4 @@
-const CONSTS = {
+export const CONSTS = {
   JWT: 'jwt',
   LOCAL: 'local',
   REFRESH_TOKEN: 'refresh-token',
@@ -9,4 +9,7 @@ const CONSTS = {
   BLACK_LIST: 'black::',
 } as const;
 // D_* - decorators
-export default CONSTS;
+
+export const ERRORS = {};
+
+export const DEFAULT_TIME = 7 * 24 * 60 * 60 * 1000;

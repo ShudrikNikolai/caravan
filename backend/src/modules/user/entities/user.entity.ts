@@ -9,7 +9,7 @@ export class User extends BaseEntity {
   @Column({ type: 'varchar', length: 64, unique: true })
   email: string;
 
-  @Column({ type: 'varchar', length: 64, nullable: true })
+  @Column({ type: 'varchar', length: 64 })
   username: string;
 
   @Column({
@@ -21,10 +21,10 @@ export class User extends BaseEntity {
   authMethod: 'local' | 'oauth' | 'email';
 
   @Column({ type: 'varchar', length: 64, nullable: true })
-  country: string;
+  country: string | null;
 
   @Column({ type: 'varchar', length: 64, nullable: true })
-  city: string;
+  city: string | null;
 
   @Column({
     name: 'birth_date',
@@ -33,7 +33,7 @@ export class User extends BaseEntity {
   })
   birthDate: Date;
 
-  @Column({ name: 'password_hash', type: 'text', nullable: true })
+  @Column({ name: 'password_hash', type: 'text' })
   passwordHash: string;
 
   @OneToMany(() => UserDevice, (userDevice) => userDevice.user, {
