@@ -5,8 +5,7 @@ export const LoginWithEmailOrUsernameSchema = z
     email: z.string().email('Invalid email format').optional(),
     username: z
       .string()
-      .min(3, 'Username must be at least 3 characters long')
-      .optional(),
+      .min(3, 'Username must be at least 3 characters long'),
     password: z.string().min(6, 'Password must be at least 6 characters long'),
   })
   .refine((data) => data.email || data.username, {
@@ -14,4 +13,4 @@ export const LoginWithEmailOrUsernameSchema = z
     path: ['email', 'username'],
   });
 
-export type LoginDto = z.infer<typeof LoginWithEmailOrUsernameSchema>;
+export type TLoginSchema = z.infer<typeof LoginWithEmailOrUsernameSchema>;

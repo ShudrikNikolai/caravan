@@ -57,13 +57,11 @@ export class UserRepository
     id: string,
     passwordHash: string,
   ): Promise<Partial<User> | null> {
-    // TODO добавить валидацию на будующее, после выноса в отдельный сервис auth
     const user = await this.update(id, { passwordHash });
     return this.sanitize(user);
   }
 
   async createWithTransaction(userData: ICreateUserData): Promise<User> {
-    // TODO
     this.logger.setContext(this.entityName);
 
     const queryRunner = this.dataSource.createQueryRunner();

@@ -2,8 +2,6 @@ import { ConfigModule, ConfigService } from '@/config';
 import { AuthController } from '@/modules/auth/auth.controller';
 import { AuthService } from '@/modules/auth/services/auth.service';
 import { JwtStrategy } from '@/modules/auth/strategies/jwt.strategy';
-import { User } from '@/modules/user/entities/user.entity';
-import { UserRepository } from '@/modules/user/repositories/user.repository';
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -13,18 +11,17 @@ import { RefreshTokenRepository } from './repositories/refresh-token.repository'
 import { SessionService } from './services/session.service';
 import { LocalStrategy } from './strategies/local.strategy';
 import { JwtRefreshStrategy } from './strategies/refresh-token.strategy';
+import { UserExternal } from '../user/services/user-external.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, RefreshToken]),
+    TypeOrmModule.forFeature([RefreshToken]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
         return {
-          secret:
-            configService.auth.jwtSecret ||
-            'fallback-secret-key-very-secret-very',
+          secret: configService.auth.jwtSecret,
           signOptions: {
             expiresIn: configService.auth.jwtAccessTtl,
           },
@@ -38,7 +35,7 @@ import { JwtRefreshStrategy } from './strategies/refresh-token.strategy';
     JwtStrategy,
     LocalStrategy,
     JwtRefreshStrategy,
-    UserRepository,
+    UserExternal,
     RefreshTokenRepository,
     SessionService,
   ],

@@ -1,7 +1,7 @@
 import { ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import CONSTS from '../consts';
 import { createAuthGuard } from '@/common/guards/base-auth.guard';
+import { CONSTS } from '../consts';
 
 @Injectable()
 export class JwtAuthGuard extends createAuthGuard(CONSTS.JWT) {

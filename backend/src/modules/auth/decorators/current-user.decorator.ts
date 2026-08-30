@@ -3,12 +3,11 @@ import { JwtPayload } from '../interfaces/jwt-payload.interface';
 import { Request } from 'express';
 
 export const CurrentUser = createParamDecorator(
-  (data: keyof JwtPayload | undefined, ctx: ExecutionContext) => {
-    // TODO облепить еще типами
+  (data: keyof JwtPayload | unknown, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest<Request>();
     const user = 'user' in request ? request.user : null;
 
-    if (!user) {
+    if (!user || typeof data !== 'string') {
       return null;
     }
 

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { FindOptionsWhere, Repository } from 'typeorm';
 import { RefreshToken } from '../entities/refresh-token.entity';
 import { TypeOrmRepository } from '@/common/repositories/typeorm.repository';
 
@@ -18,8 +18,8 @@ export class RefreshTokenRepository extends TypeOrmRepository<RefreshToken> {
   async findByToken(jti: string): Promise<RefreshToken | null> {
     return this.findOne({
       filter: { jti },
-      relations: RefreshToken['user'],
-    }); // { jti }, undefined, undefined, RefreshToken['user']
+      relations: ['user'],
+    });
   }
 
   // запилить транзакцию на основные методы создания и обновления по работе с токеном TODO.
@@ -43,9 +43,7 @@ export class RefreshTokenRepository extends TypeOrmRepository<RefreshToken> {
     reason?: string,
   ): Promise<void> {
     const refreshToken = await this.findByToken(jti);
-    if (refreshToken && revokedBy !== refreshToken.userId) {
-      throw new Error(); // TODO
-    }
+    if (!refreshToken) return;
     if (refreshToken) {
       refreshToken.revoke(revokedBy, reason);
       await this.repository.save(refreshToken);
@@ -53,14 +51,10 @@ export class RefreshTokenRepository extends TypeOrmRepository<RefreshToken> {
   }
 
   async revokeAllForUser(userId: string, revokedBy?: string): Promise<void> {
-    const tokens = await this.findMany({
-      filter: { userId, isRevoked: false },
-    });
-
-    for (const token of tokens) {
-      token.revoke(revokedBy, 'Revoked all tokens');
-      await this.repository.save(token);
-    }
+    await this.repository.update(
+      { userId, isRevoked: false } as FindOptionsWhere<RefreshToken>,
+      { isRevoked: true, revokedAt: new Date(), revokedBy: revokedBy ?? null, revokedReason: 'Revoked all tokens' },
+    );
   }
 
   async deleteExpiredTokens(): Promise<void> {

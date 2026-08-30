@@ -22,4 +22,4 @@ export const StrictRegisterSchema = z
     path: ['confirmPassword'],
   });
 
-export type StrictRegisterDto = z.infer<typeof StrictRegisterSchema>;
+export type TStrictRegisterSchema = z.infer<typeof StrictRegisterSchema>;

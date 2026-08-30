@@ -5,39 +5,38 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
-import { User } from '../../user/entities/user.entity';
-import { UserRepository } from '../../user/repositories/user.repository';
-import { LoginDto } from '../schemas/login.schema';
 import { Tokens } from '../interfaces/tokens.interface';
 import { RefreshTokenRepository } from '../repositories/refresh-token.repository';
 import { SessionService } from './session.service';
-import { StrictRegisterDto } from '../schemas/register.schema';
 import { RefreshTokenPayload } from '../interfaces/refresh-token.interface';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
+import { ExternalUserService } from './external-user.service';
+import { TLoginSchema } from '../schemas/login.schema';
+import { DEFAULT_TIME, ERRORS } from '../consts';
+import { IUserContract } from '@/common/contracts/user-contract.interface';
+import { TStrictRegisterSchema } from '../schemas/register.schema';
+import { Session } from 'express-session';
+import { LoginResponse } from '../interfaces/login-response.inteface';
 
-const DEFAULT_TIME = 7 * 24 * 60 * 60 * 1000;
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly userRepository: UserRepository, // TODO контракт
+    private readonly externalUserService: ExternalUserService,
     private readonly refreshTokenRepository: RefreshTokenRepository,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly sessionService: SessionService,
   ) {}
 
-  // @ts-ignore
-  async login(loginDto: LoginDto, session?: unknown): Promise<any> {
-    if (!loginDto?.username) {
-      throw new UnauthorizedException();
-    }
-
-    const user = await this.validateUser(loginDto.username, loginDto.password);
+  async login(loginSchema: TLoginSchema, session?: Session): Promise<LoginResponse> {
+    const user = await this.externalUserService.validateUser(
+      loginSchema.username,
+      loginSchema.password,
+    );
 
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException(ERRORS.INVALID_CREDENTIALS);
     }
 
     const tokens = await this.generateTokens(user);
@@ -59,7 +58,7 @@ export class AuthService {
       'id' in session &&
       'user' in session
     ) {
-      session.user = user.getPublicData();
+      session.user = user;
       sessionId = String(session.id);
     }
 
@@ -69,39 +68,38 @@ export class AuthService {
     }
 
     return {
-      user: user.getPublicData(),
+      user,
       tokens,
       sessionId,
     };
   }
 
-  async getUserProfile(userId: string): Promise<Partial<User>> {
-    const user = await this.userRepository.findById(userId);
-    if (!user) throw new NotFoundException('User not found');
-    return user.getPublicData();
+  async getUserProfile(userId: string): Promise<Partial<IUserContract>> {
+    const user = await this.externalUserService.findUserById(userId);
+    if (!user) throw new NotFoundException(ERRORS.USER_NOT_FOUND);
+    return user;
   }
 
-  async register(registerDto: StrictRegisterDto): Promise<any> {
+  async register(registerSchema: TStrictRegisterSchema): Promise<LoginResponse> {
     // Проверяем, существует ли пользователь
-    const existingUser = await this.userRepository.findByUsername(
-      registerDto.username,
+    const existingUser = await this.externalUserService.findByUsername(
+      registerSchema.username,
     );
 
     if (existingUser) {
-      throw new UnauthorizedException('User already exist');
+      throw new UnauthorizedException(ERRORS.USER_IS_EXISTS);
     }
 
-    // Хэшируем пароль
-    const saltRounds = 10; // TODO вынести в конфиг
-    const passwordHash = await bcrypt.hash(registerDto.password, saltRounds);
-
     // Создаем пользователя с транзакцией
-    const user = await this.userRepository.createWithTransaction({
-      username: registerDto.username || registerDto.email,
-      email: registerDto.email,
-      passwordHash,
-      authMethod: 'local',
+    const user = await this.externalUserService.createUser({
+      password: registerSchema.password,
+      username: registerSchema.username || registerSchema.email,
+      email: registerSchema.email,
     });
+
+    if (!user) {
+      throw new UnauthorizedException(ERRORS.INTERNAL)
+    }
 
     // Генерируем токены для автоматического логина после регистрации
     const tokens = await this.generateTokens(user);
@@ -115,7 +113,7 @@ export class AuthService {
     );
 
     return {
-      user: user.getPublicData(),
+      user,
       tokens,
     };
   }
@@ -125,12 +123,12 @@ export class AuthService {
     const storedToken =
       await this.refreshTokenRepository.findByToken(refreshTokenId);
     if (!storedToken || !storedToken.isValid()) {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException(ERRORS.INVALID_REFRESH_TOKEN);
     }
 
-    const user = await this.userRepository.findById(userId);
-    if (!user || user.deletedAt) {
-      throw new UnauthorizedException('User not found or inactive');
+    const user = await this.externalUserService.findUserById(userId);
+    if (!user) {
+      throw new UnauthorizedException(ERRORS.USER_NOT_FOUND);
     }
 
     await this.refreshTokenRepository.revokeToken(
@@ -167,11 +165,11 @@ export class AuthService {
         secret: this.configService.auth.jwtRefreshSecret,
       }) as RefreshTokenPayload;
     } catch {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException(ERRORS.INVALID_REFRESH_TOKEN);
     }
 
     if (payload.sub !== userId) {
-      throw new UnauthorizedException('Token does not belong to this user');
+      throw new UnauthorizedException(ERRORS.TOKEN_WTF);
     }
 
     await this.refreshTokenRepository.revokeToken(
@@ -182,30 +180,21 @@ export class AuthService {
   }
 
   async changePassword(
-    userId: string,
-    currentPassword: string,
-    newPassword: string,
+    id: string,
+    username: string,
+    oldpass: string,
+    newpass: string,
   ): Promise<boolean> {
-    const user = await this.userRepository.findById(userId);
+    const user = await this.externalUserService.updateUserPassword({
+      id,
+      username,
+      oldpass,
+      newpass
+    });
 
-    if (!user || !user.passwordHash) {
-      throw new UnauthorizedException('User not found');
+    if (!user) {
+      throw new UnauthorizedException(ERRORS.USER_NOT_FOUND);
     }
-
-    const isPasswordValid = await bcrypt.compare(
-      currentPassword,
-      user.passwordHash,
-    );
-
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Current password is incorrect');
-    }
-
-    // Хэшируем новый пароль
-    const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(newPassword, saltRounds);
-
-    await this.userRepository.updateUserPassword(user.id, passwordHash);
 
     // Отзываем все существующие токены пользователя
     await this.refreshTokenRepository.revokeAllForUser(user.id, 'system');
@@ -213,13 +202,12 @@ export class AuthService {
     return true;
   }
 
-  private async generateTokens(user: User): Promise<Tokens> {
+  private async generateTokens(user: IUserContract): Promise<Tokens> {
     const refreshJti = uuidv4();
 
     const accessTokenPayload: JwtPayload = {
       sub: user.id,
       username: user.username,
-      email: user.email,
       type: 'access',
       iat: Math.floor(Date.now() / 1000),
     };
@@ -279,26 +267,10 @@ export class AuthService {
     // Возвращаем refresh tokens как альтернативу
     // return this.refreshTokenRepository.findMany({
     //   filter: { userId, isRevoked: false },
-    //   sort: { field: 'createdAt', direction: 'DESC' }
+    //   sort: { field: 'created_at', direction: 'DESC' }
     // });
-    //
+    // //
     return [];
-  }
-
-  async validateUser(login: string, password: string): Promise<User | null> {
-    const user = await this.userRepository.findByUsername(login);
-
-    if (!user || user.deletedAt || !user.passwordHash) {
-      return null;
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-
-    if (!isPasswordValid) {
-      return null;
-    }
-
-    return user;
   }
 
   private getRefreshTokenExpiry(): Date {
@@ -333,9 +305,6 @@ export class AuthService {
       return value * (multipliers[unit] || 1);
     }
 
-    console.warn(
-      `Unrecognized expiry format: ${expiry}. Using default 15 minutes.`,
-    );
     return 900;
   }
 }

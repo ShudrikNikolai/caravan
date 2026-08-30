@@ -7,16 +7,29 @@ export interface IUserContract {
 }
 
 export interface IRegisterContract {
-  email: string;
+  email?: string;
   password: string;
   username: string;
+}
+
+export interface IChangePasswordData {
+  id: string;
+  username: string;
+  oldpass: string;
+  newpass: string;
 }
 
 export interface IUserExternal {
   findUserById(id: string): Promise<IUserContract | null>;
   findByUsername(username: string): Promise<IUserContract | null>;
-  updateUserPassword(id: string, passwordHash: string): Promise<boolean>;
+  updateUserPassword(
+    data: IChangePasswordData,
+  ): Promise<IUserContract | null>;
   createUser(
     registerContract: IRegisterContract,
+  ): Promise<IUserContract | null>;
+  validateUser(
+    username: string,
+    password: string,
   ): Promise<IUserContract | null>;
 }

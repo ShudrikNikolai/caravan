@@ -1,10 +1,9 @@
 import {
-  ConflictException,
   Injectable,
-  UnauthorizedException,
 } from '@nestjs/common';
 import {
   IRegisterContract,
+  IChangePasswordData,
   IUserContract,
   IUserExternal,
 } from '@/common/contracts/user-contract.interface';
@@ -24,31 +23,24 @@ export class UserExternal implements IUserExternal {
     return user as IUserContract;
   }
 
-  async updateUserPassword(id: string, passwordHash: string): Promise<boolean> {
-    const update = await this.userRepository.updateUserPassword(
-      id,
-      passwordHash,
-    );
-    return !!update;
+  async updateUserPassword(
+    data: IChangePasswordData,
+  ): Promise<IUserContract | null> {
+    if (!data.username || !data.newpass || !data.oldpass) return null;
+    const user = await this.checkUser(data.username, data.oldpass);
+    if (!user || user.id !== data.id) return null;
+    const passwordHash = await this.createHash(data.newpass);
+
+    const update = await this.userRepository.updateUserPassword(user.id, passwordHash);
+
+    return update as IUserContract | null;
   }
 
   async validateUser(
     username: string,
     password: string,
   ): Promise<IUserContract | null> {
-    const user = await this.userRepository.findOne({
-      filter: { username },
-    });
-
-    if (!user || user.deletedAt || !user.passwordHash) {
-      throw new UnauthorizedException(ERRORS.USER_NOT_FOUND);
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-
-    if (!isPasswordValid) {
-      throw new UnauthorizedException(ERRORS.INVALID_PASSWORD);
-    }
+    const user = await this.checkUser(username, password);
 
     return this.userRepository.sanitize(user) as IUserContract;
   }
@@ -62,24 +54,51 @@ export class UserExternal implements IUserExternal {
     );
 
     if (existingUser) {
-      throw new ConflictException(ERRORS.USER_EXISTS);
+      return null
+      //throw new ConflictException(ERRORS.USER_EXISTS);
     }
 
     // Хэшируем пароль
-    const saltRounds = R_SALT;
-    const passwordHash = await bcrypt.hash(
-      registerContract.password,
-      saltRounds,
-    );
+    const passwordHash = await this.createHash(registerContract.password);
+
+    const username = registerContract.username || registerContract.email;
+    if (!username || typeof username !== 'string') {
+      return null
+      // throw new ConflictException(ERRORS.USER_EXISTS);
+    }
 
     // Создаем пользователя с транзакцией
     const user = await this.userRepository.createWithTransaction({
-      username: registerContract.username || registerContract.email,
-      email: registerContract.email,
+      username,
+      email: registerContract.email ?? '',
       passwordHash,
       authMethod: 'local',
     });
 
     return this.userRepository.sanitize(user) as IUserContract;
+  }
+
+  private async checkUser(username: string, password: string) {
+    const user = await this.userRepository.findOne({
+      filter: { username },
+    });
+
+    if (!user || !user.passwordHash) {
+      return null;
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+
+    if (!isPasswordValid) {
+      return null;
+    }
+
+    return user;
+  }
+
+  private async createHash(pass: string) {
+    const saltRounds = R_SALT;
+    const passwordHash = await bcrypt.hash(pass, saltRounds);
+    return passwordHash;
   }
 }

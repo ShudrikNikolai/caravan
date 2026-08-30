@@ -8,14 +8,15 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
-import type { Response } from 'express';
+import type { Response, Request } from 'express';
 import { CurrentUser, Public } from './decorators';
-import type { LoginDto } from './schemas/login.schema';
+import type { TLoginSchema } from './schemas/login.schema';
 import { RefreshTokenGuard } from './guards';
 import { AuthService } from './services/auth.service';
-import type { StrictRegisterDto } from './schemas/register.schema';
+import type { TStrictRegisterSchema } from './schemas/register.schema';
 import { Tokens } from './interfaces/tokens.interface';
-// TODO validate zod
+import { MAX_AGE } from './consts';
+
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -23,11 +24,11 @@ export class AuthController {
   @Public()
   @Post('login')
   async login(
-    @Body() loginDto: LoginDto,
-    @Req() req: any,
+    @Body() loginSchema: TLoginSchema,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.authService.login(loginDto, req.session);
+    const result = await this.authService.login(loginSchema, req.session);
 
     // Устанавливаем cookies
     this.setAuthCookies(res, result.tokens);
@@ -38,11 +39,10 @@ export class AuthController {
   @Public()
   @Post('register')
   async register(
-    @Body() registerDto: StrictRegisterDto,
-    @Req() req: any,
+    @Body() registerSchema: TStrictRegisterSchema,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.authService.register(registerDto);
+    const result = await this.authService.register(registerSchema);
 
     this.setAuthCookies(res, result.tokens);
 
@@ -79,10 +79,11 @@ export class AuthController {
   @ApiBearerAuth()
   async changePassword(
     @CurrentUser('id') userId: string,
-    @Body('currentPassword') currentPassword: string,
-    @Body('newPassword') newPassword: string,
+    @Body('username') username: string,
+    @Body('currentPassword') oldpass: string,
+    @Body('newPassword') newpass: string,
   ) {
-    await this.authService.changePassword(userId, currentPassword, newPassword);
+    await this.authService.changePassword(userId, username, oldpass, newpass);
     return { message: 'Password changed successfully' };
   }
 
@@ -100,12 +101,14 @@ export class AuthController {
   }
 
   private clearAuthCookies(res: Response) {
-    res.clearCookie('access_token');
-    res.clearCookie('refresh_token');
-    // @ts-ignore
-    if (res.req.session) {
-      // @ts-ignore
-      res.req.session.destroy();
+    const req = res.req as Request;
+    if (req.session) {
+      req.session.destroy((err) => {
+        if (err) {
+          res.clearCookie('access_token');
+          res.clearCookie('refresh_token');
+        }
+      });
     }
   }
 
@@ -114,13 +117,13 @@ export class AuthController {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: tokens.expiresIn * 1000,
+      maxAge: MAX_AGE(tokens.expiresIn),
     });
     res.cookie('refresh_token', tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: (tokens.refreshExpiresIn ?? 1) * 1000, // TODO
+      maxAge: MAX_AGE(tokens.refreshExpiresIn ?? 1),
     });
   }
 }

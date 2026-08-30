@@ -2,10 +2,10 @@ import { ConfigService } from '@/config';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import CONSTS from '../consts';
+import { CONSTS, ERRORS } from '../consts';
 import { RefreshTokenRepository } from '../repositories/refresh-token.repository';
 import { RefreshTokenPayload } from '../interfaces/refresh-token.interface';
-// TODO
+
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(
   Strategy,
@@ -17,7 +17,7 @@ export class JwtRefreshStrategy extends PassportStrategy(
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
-        ExtractJwt.fromBodyField('refreshToken'),
+        ExtractJwt.fromBodyField(CONSTS.EXTRACT_JWT_FROM_BODY),
         ExtractJwt.fromAuthHeaderAsBearerToken(),
         (req) => req?.cookies?.refresh_token,
       ]),
@@ -33,7 +33,7 @@ export class JwtRefreshStrategy extends PassportStrategy(
     );
 
     if (!refreshToken || !refreshToken.isValid()) {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException(ERRORS.INVALID_REFRESH_TOKEN);
     }
 
     return {
