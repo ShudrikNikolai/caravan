@@ -2,8 +2,10 @@ import { Controller, Get } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { HealthCheck, HttpHealthIndicator } from '@nestjs/terminus';
 import { PinoLogger } from 'nestjs-pino';
+import { Public } from '../auth/decorators';
 
 @ApiTags('HEALTH')
+@Public()
 @Controller('health')
 export class HealthController {
   constructor(

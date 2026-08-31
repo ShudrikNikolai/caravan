@@ -4,9 +4,9 @@ import { DataSource, Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { ICreateUserData, IUserRepository } from '../interfaces/user.interface';
 import { TypeOrmRepository } from '@/common/repositories/typeorm.repository';
-import { TUpdateUserSchema } from '../schemas/user-update.schema';
 import { PinoLogger } from 'nestjs-pino';
-import { DEFAULT_COUNTRY, ERRORS } from '../consts';
+import { DEFAULT_COUNTRY } from '../consts';
+import { IUserResponseSchema } from '../schemas/user-response.schema';
 
 @Injectable()
 export class UserRepository
@@ -33,12 +33,12 @@ export class UserRepository
     return this.exists({ filter });
   }
 
-  async findUserById(id: string): Promise<Partial<User> | null> {
+  async findUserById(id: string): Promise<IUserResponseSchema | null> {
     const user = await this.findById(id);
     return this.sanitize(user);
   }
 
-  async findByUsername(username: string): Promise<Partial<User> | null> {
+  async findByUsername(username: string): Promise<IUserResponseSchema | null> {
     const user = await this.findOne({
       filter: { username },
     });
@@ -47,8 +47,8 @@ export class UserRepository
 
   async updateUserById(
     id: string,
-    data: TUpdateUserSchema,
-  ): Promise<Partial<User> | null> {
+    data: Partial<User>,
+  ): Promise<IUserResponseSchema | null> {
     const updUser = await this.update(id, data);
     return this.sanitize(updUser);
   }
@@ -56,7 +56,7 @@ export class UserRepository
   async updateUserPassword(
     id: string,
     passwordHash: string,
-  ): Promise<Partial<User> | null> {
+  ): Promise<IUserResponseSchema | null> {
     const user = await this.update(id, { passwordHash });
     return this.sanitize(user);
   }
@@ -94,7 +94,7 @@ export class UserRepository
     }
   }
 
-  sanitize(user: User | null): Partial<User> | null {
+  sanitize(user: User | null): IUserResponseSchema | null {
     return user ? user.getPublicData() : null;
   }
 }

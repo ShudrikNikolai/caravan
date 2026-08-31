@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Patch,
   Post,
   Req,
   Res,
@@ -28,7 +29,11 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.authService.login(loginSchema, req.session);
+    const result = await this.authService.login(
+      loginSchema,
+      req.ip ?? '',
+      req.headers['user-agent'],
+    );
 
     // Устанавливаем cookies
     this.setAuthCookies(res, result.tokens);
@@ -52,11 +57,12 @@ export class AuthController {
   @Post('refresh')
   @UseGuards(RefreshTokenGuard)
   @ApiBearerAuth()
-  async refresh(@Req() req: any, @Res({ passthrough: true }) res: Response) {
-    const tokens = await this.authService.refreshTokens(
-      req.user.refreshTokenId,
-      req.user.userId,
-    );
+  async refresh(
+    @CurrentUser('id') userId: string,
+    @Body('refreshTokenId') refreshTokenId: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const tokens = await this.authService.refreshTokens(refreshTokenId, userId);
     this.setAuthCookies(res, tokens);
     return { message: 'ok' };
   }
@@ -75,13 +81,13 @@ export class AuthController {
     return { message: 'Logged out successfully' };
   }
 
-  @Post('password/change')
+  @Patch('password/change')
   @ApiBearerAuth()
   async changePassword(
     @CurrentUser('id') userId: string,
     @Body('username') username: string,
-    @Body('currentPassword') oldpass: string,
-    @Body('newPassword') newpass: string,
+    @Body('oldpass') oldpass: string,
+    @Body('newpass') newpass: string,
   ) {
     await this.authService.changePassword(userId, username, oldpass, newpass);
     return { message: 'Password changed successfully' };
@@ -101,28 +107,32 @@ export class AuthController {
   }
 
   private clearAuthCookies(res: Response) {
-    const req = res.req as Request;
-    if (req.session) {
-      req.session.destroy((err) => {
-        if (err) {
-          res.clearCookie('access_token');
-          res.clearCookie('refresh_token');
-        }
-      });
-    }
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict' as const,
+      path: '/',
+    };
+
+    res.clearCookie('access_token', cookieOptions);
+    res.clearCookie('refresh_token', cookieOptions);
   }
 
   private setAuthCookies(res: Response, tokens: Tokens) {
-    res.cookie('access_token', tokens.accessToken, {
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'strict' as const,
+      path: '/',
+    };
+
+    res.cookie('access_token', tokens.accessToken, {
+      ...cookieOptions,
       maxAge: MAX_AGE(tokens.expiresIn),
     });
+
     res.cookie('refresh_token', tokens.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      ...cookieOptions,
       maxAge: MAX_AGE(tokens.refreshExpiresIn ?? 1),
     });
   }

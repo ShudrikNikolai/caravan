@@ -7,10 +7,11 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { HealthModule } from './modules/health/health.module';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-// import { UserModule } from './modules/user/user.module';
-// import { AuthModule } from './modules/auth/auth.module';
-// import { CaravanModule } from './modules/caravan/caravan.module';
+import { UserModule } from './modules/user/user.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { CaravanModule } from './modules/caravan/caravan.module';
 import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
+import { JwtAuthGuard } from './modules/auth/guards';
 
 @Module({
   imports: [
@@ -26,9 +27,9 @@ import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
       ],
     }),
     HealthModule,
-    // UserModule,
-    // AuthModule,
-    // CaravanModule,
+    UserModule,
+    AuthModule,
+    CaravanModule,
   ],
   controllers: [],
   providers: [
@@ -36,7 +37,8 @@ import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
     { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
     { provide: APP_FILTER, useClass: HttpExceptionFilter },
     { provide: APP_PIPE, useClass: ZodValidationPipe },
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    // { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
   ],
 })
 export class AppModule {}

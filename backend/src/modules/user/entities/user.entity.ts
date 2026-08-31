@@ -6,7 +6,7 @@ import { UserDevice } from './device.entity';
 @Index(['email'], { unique: true })
 @Index(['username'], { unique: true })
 export class User extends BaseEntity {
-  @Column({ type: 'varchar', length: 64, unique: true })
+  @Column({ type: 'varchar', length: 64 })
   email: string;
 
   @Column({ type: 'varchar', length: 64 })

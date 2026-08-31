@@ -32,7 +32,6 @@ export abstract class TypeOrmRepository<
   }
 
   async findOne(options?: FindOptions<T>): Promise<T | null> {
-    this.validateFilter(options?.filter);
     return this.repository.findOne(this.buildFindOptions(options));
   }
 

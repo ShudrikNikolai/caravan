@@ -16,7 +16,9 @@ export class ExternalUserService implements IUserExternal {
   async findByUsername(username: string): Promise<IUserContract | null> {
     return this.userExternal.findByUsername(username);
   }
-  async updateUserPassword(data: IChangePasswordData): Promise<IUserContract | null> {
+  async updateUserPassword(
+    data: IChangePasswordData,
+  ): Promise<IUserContract | null> {
     return this.userExternal.updateUserPassword(data);
   }
   async createUser(

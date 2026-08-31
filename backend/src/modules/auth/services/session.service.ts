@@ -1,11 +1,10 @@
 import { ConfigService } from '@/config';
 import { Injectable } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import {CONSTS} from '../consts';
+import { CONSTS } from '../consts';
 import { RedisService } from '@/infrastructure/redis/redis.service';
 // TODO RedisService - бульшую часть можно в реп выкинуть
 export interface SessionData {
-  // TODO
   sid: string;
   userId: string;
   ipAddress?: string;
@@ -27,20 +26,25 @@ export class SessionService {
     this.sessionTtl = this.configService.auth.sessionTtl;
   }
 
+  async exists(sid: string): Promise<boolean> {
+    return this.redisService.exists(sid);
+  }
+
   async createSession(
     userId: string,
-    sessionId?: string,
     ipAddress?: string,
     userAgent?: string,
   ): Promise<string> {
-    const sid = sessionId || uuidv4();
-    const sessionData = {
+    const sid = uuidv4();
+    const now = new Date().toISOString();
+
+    const sessionData: SessionData = {
       sid,
       userId,
       ipAddress,
       userAgent,
-      createdAt: new Date().toISOString(),
-      lastActivityAt: new Date().toISOString(),
+      createdAt: now,
+      lastActivityAt: now,
     };
 
     // Сохраняем сессию в Redis через RedisService
@@ -57,7 +61,9 @@ export class SessionService {
       (await this.redisService.get<string[]>(userSessionsKey)) || [];
 
     // Добавляем новую сессию
-    userSessions.push(sid); // TODO дедупликацию сделать
+    if (!userSessions.includes(sid)) {
+      userSessions.push(sid);
+    }
 
     // Сохраняем обновленный список
     await this.redisService.set(userSessionsKey, userSessions, this.sessionTtl);
@@ -87,42 +93,55 @@ export class SessionService {
     return sessionData;
   }
 
-  async updateSession(sid: string, data: Partial<SessionData>): Promise<void> {
+  async updateSession(
+    sid: string,
+    data: Partial<Omit<SessionData, 'sid' | 'userId' | 'createdAt'>>,
+  ): Promise<void> {
     const session = await this.getSession(sid);
 
-    if (session) {
-      const updatedSession = { ...session, ...data };
-      await this.redisService.set(
-        `${this.sessionPrefix}${sid}`,
-        updatedSession,
-        this.sessionTtl,
-      );
+    if (!session) {
+      return;
     }
+
+    const updatedSession: SessionData = {
+      ...session,
+      ...data,
+      lastActivityAt: new Date().toISOString(),
+    };
+
+    await this.redisService.set(
+      `${this.sessionPrefix}${sid}`,
+      updatedSession,
+      this.sessionTtl,
+    );
   }
 
   async destroySession(sid: string): Promise<void> {
     const session = await this.getSession(sid);
 
-    if (session) {
-      // Удаляем сессию
-      await this.redisService.delete(`${this.sessionPrefix}${sid}`);
+    if (!session) {
+      return;
+    }
 
-      // Удаляем из набора сессий пользователя
-      const userSessionsKey = `${this.userSessionsPrefix}${session.userId}`;
-      const userSessions =
-        (await this.redisService.get<string[]>(userSessionsKey)) || [];
+    await this.redisService.delete(`${this.sessionPrefix}${sid}`);
 
-      const updatedSessions = userSessions.filter((s) => s !== sid);
+    const userSessionsKey = `${this.userSessionsPrefix}${session.userId}`;
 
-      if (updatedSessions.length > 0) {
-        await this.redisService.set(
-          userSessionsKey,
-          updatedSessions,
-          this.sessionTtl,
-        );
-      } else {
-        await this.redisService.delete(userSessionsKey);
-      }
+    const userSessions =
+      (await this.redisService.get<string[]>(userSessionsKey)) ?? [];
+
+    const updatedSessions = userSessions.filter(
+      (sessionId) => sessionId !== sid,
+    );
+
+    if (updatedSessions.length === 0) {
+      await this.redisService.delete(userSessionsKey);
+    } else {
+      await this.redisService.set(
+        userSessionsKey,
+        updatedSessions,
+        this.sessionTtl,
+      );
     }
   }
 
@@ -146,25 +165,37 @@ export class SessionService {
 
   async getUserSessions(userId: string): Promise<SessionData[]> {
     const userSessionsKey = `${this.userSessionsPrefix}${userId}`;
+
     const sessionIds =
-      (await this.redisService.get<string[]>(userSessionsKey)) || [];
+      (await this.redisService.get<string[]>(userSessionsKey)) ?? [];
 
-    const sessions: SessionData[] = [];
+    if (sessionIds.length === 0) {
+      return [];
+    }
 
-    // Получаем все сессии параллельно
-    if (sessionIds.length > 0) {
-      const sessionPromises = sessionIds.map((sid) => this.getSession(sid));
+    const sessions = await Promise.all(
+      sessionIds.map((sid) => this.getSession(sid)),
+    );
 
-      const results = await Promise.all(sessionPromises);
+    const activeSessions = sessions.filter(
+      (session): session is SessionData => session !== null,
+    );
 
-      for (const session of results) {
-        if (session) {
-          sessions.push(session);
-        }
+    const activeIds = activeSessions.map((session) => session.sid);
+
+    if (activeIds.length !== sessionIds.length) {
+      if (activeIds.length > 0) {
+        await this.redisService.set(
+          userSessionsKey,
+          activeIds,
+          this.sessionTtl,
+        );
+      } else {
+        await this.redisService.delete(userSessionsKey);
       }
     }
 
-    return sessions;
+    return activeSessions;
   }
 
   async getActiveSessionCount(userId: string): Promise<number> {
@@ -178,16 +209,7 @@ export class SessionService {
   }
 
   // в случае, если access token угнали и он не истек, забиваем его в black list
-  async addTokenByBlackList(userId: string): Promise<void> {
-    const sessionData = {
-      userId,
-      createdAt: new Date().toISOString(),
-      lastActivityAt: new Date().toISOString(),
-    };
-
-    const userBlackListKey = `${CONSTS.BLACK_LIST}${userId}`;
-
-    // Сохраняем обновленный список
-    await this.redisService.set(userBlackListKey, sessionData, this.sessionTtl);
+  async addTokenToBlacklist(jti: string, ttl: number): Promise<void> {
+    await this.redisService.set(`${CONSTS.BLACK_LIST}${jti}`, true, ttl);
   }
 }

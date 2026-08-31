@@ -29,7 +29,7 @@ export class JwtRefreshStrategy extends PassportStrategy(
 
   async validate(req: Request, payload: RefreshTokenPayload) {
     const refreshToken = await this.refreshTokenRepository.findByToken(
-      payload.jti,
+      `${payload.jti}`,
     );
 
     if (!refreshToken || !refreshToken.isValid()) {

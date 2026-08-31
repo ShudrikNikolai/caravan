@@ -1,18 +1,34 @@
-import { UnauthorizedException, NotFoundException } from '@nestjs/common';
+// TODO upd and fix
+import { UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { ExternalUserService } from './external-user.service';
 import { RefreshTokenRepository } from '../repositories/refresh-token.repository';
 import { SessionService } from './session.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@/config';
-import { Session } from 'express-session';
 
 describe('AuthService', () => {
   let authService: AuthService;
-  let externalUserService: jest.Mocked<Pick<ExternalUserService, 'validateUser' | 'findByUsername' | 'createUser' | 'findUserById' | 'updateUserPassword'>>;
-  let refreshTokenRepository: jest.Mocked<Pick<RefreshTokenRepository, 'createRefreshToken' | 'findByToken' | 'revokeToken' | 'revokeAllForUser'>>;
+  let externalUserService: jest.Mocked<
+    Pick<
+      ExternalUserService,
+      | 'validateUser'
+      | 'findByUsername'
+      | 'createUser'
+      | 'findUserById'
+      | 'updateUserPassword'
+    >
+  >;
+  let refreshTokenRepository: jest.Mocked<
+    Pick<
+      RefreshTokenRepository,
+      'createRefreshToken' | 'findByToken' | 'revokeToken' | 'revokeAllForUser'
+    >
+  >;
   let jwtService: jest.Mocked<Pick<JwtService, 'signAsync' | 'verify'>>;
-  let sessionService: jest.Mocked<Pick<SessionService, 'createSession' | 'destroyUserSessions'>>;
+  let sessionService: jest.Mocked<
+    Pick<SessionService, 'createSession' | 'destroyUserSessions'>
+  >;
   let configService: { auth: Record<string, unknown> };
 
   const mockUser = {
@@ -78,7 +94,10 @@ describe('AuthService', () => {
     it('создаёт токены и сохраняет refresh token при успешном логине', async () => {
       externalUserService.validateUser.mockResolvedValue(mockUser);
 
-      const result = await authService.login({ username: 'nik', password: 'correct' });
+      const result = await authService.login({
+        username: 'nik',
+        password: 'correct',
+      });
 
       expect(result.user).toEqual(mockUser);
       expect(result.tokens.accessToken).toBe('signed-jwt');
@@ -99,7 +118,10 @@ describe('AuthService', () => {
       );
 
       expect(session.user).toEqual(mockUser);
-      expect(sessionService.createSession).toHaveBeenCalledWith(mockUser.id, 'sess-1');
+      expect(sessionService.createSession).toHaveBeenCalledWith(
+        mockUser.id,
+        'sess-1',
+      );
       expect(result.sessionId).toBe('sess-1');
     });
 
@@ -108,7 +130,10 @@ describe('AuthService', () => {
       externalUserService.validateUser.mockResolvedValue(mockUser);
       const session = { id: 'sess-1' } as Session;
 
-      await authService.login({ username: 'nik', password: 'correct' }, session);
+      await authService.login(
+        { username: 'nik', password: 'correct' },
+        session,
+      );
 
       expect(sessionService.createSession).not.toHaveBeenCalled();
     });
@@ -164,7 +189,9 @@ describe('AuthService', () => {
     });
 
     it('отзывает старый токен и выдаёт новую пару при успешном refresh', async () => {
-      refreshTokenRepository.findByToken.mockResolvedValue(validStoredToken as any);
+      refreshTokenRepository.findByToken.mockResolvedValue(
+        validStoredToken as any,
+      );
       externalUserService.findUserById.mockResolvedValue(mockUser);
 
       const tokens = await authService.refreshTokens('jti-1', 'user-1');
@@ -181,7 +208,9 @@ describe('AuthService', () => {
     });
 
     it('бросает UnauthorizedException, если пользователь по токену не найден', async () => {
-      refreshTokenRepository.findByToken.mockResolvedValue(validStoredToken as any);
+      refreshTokenRepository.findByToken.mockResolvedValue(
+        validStoredToken as any,
+      );
       externalUserService.findUserById.mockResolvedValue(null);
 
       await expect(
@@ -223,7 +252,10 @@ describe('AuthService', () => {
     it('отзывает все токены и уничтожает сессии, если sessionEnb включён', async () => {
       await authService.logout('user-1');
 
-      expect(refreshTokenRepository.revokeAllForUser).toHaveBeenCalledWith('user-1', 'system');
+      expect(refreshTokenRepository.revokeAllForUser).toHaveBeenCalledWith(
+        'user-1',
+        'system',
+      );
       expect(sessionService.destroyUserSessions).toHaveBeenCalledWith('user-1');
     });
 

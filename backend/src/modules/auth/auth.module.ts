@@ -12,6 +12,8 @@ import { SessionService } from './services/session.service';
 import { LocalStrategy } from './strategies/local.strategy';
 import { JwtRefreshStrategy } from './strategies/refresh-token.strategy';
 import { UserExternal } from '../user/services/user-external.service';
+import { UserModule } from '../user/user.module';
+import { ExternalUserService } from './services/external-user.service';
 
 @Module({
   imports: [
@@ -29,13 +31,15 @@ import { UserExternal } from '../user/services/user-external.service';
       },
       inject: [ConfigService],
     }),
+    UserModule,
   ],
   providers: [
     AuthService,
     JwtStrategy,
     LocalStrategy,
     JwtRefreshStrategy,
-    UserExternal,
+    //UserExternal,
+    ExternalUserService,
     RefreshTokenRepository,
     SessionService,
   ],

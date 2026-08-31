@@ -1,6 +1,4 @@
-import {
-  Injectable,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   IRegisterContract,
   IChangePasswordData,
@@ -9,18 +7,18 @@ import {
 } from '@/common/contracts/user-contract.interface';
 import { UserRepository } from '../repositories/user.repository';
 import * as bcrypt from 'bcrypt';
-import { ERRORS, R_SALT } from '../consts';
+import { R_SALT } from '../consts';
 
 @Injectable()
 export class UserExternal implements IUserExternal {
   constructor(private readonly userRepository: UserRepository) {}
   async findUserById(id: string): Promise<IUserContract | null> {
     const result = await this.userRepository.findUserById(id);
-    return result as IUserContract;
+    return result;
   }
   async findByUsername(username: string): Promise<IUserContract | null> {
     const user = await this.userRepository.findByUsername(username);
-    return user as IUserContract;
+    return user;
   }
 
   async updateUserPassword(
@@ -31,9 +29,12 @@ export class UserExternal implements IUserExternal {
     if (!user || user.id !== data.id) return null;
     const passwordHash = await this.createHash(data.newpass);
 
-    const update = await this.userRepository.updateUserPassword(user.id, passwordHash);
+    const update = await this.userRepository.updateUserPassword(
+      user.id,
+      passwordHash,
+    );
 
-    return update as IUserContract | null;
+    return update;
   }
 
   async validateUser(
@@ -42,7 +43,7 @@ export class UserExternal implements IUserExternal {
   ): Promise<IUserContract | null> {
     const user = await this.checkUser(username, password);
 
-    return this.userRepository.sanitize(user) as IUserContract;
+    return this.userRepository.sanitize(user);
   }
 
   async createUser(
@@ -54,7 +55,7 @@ export class UserExternal implements IUserExternal {
     );
 
     if (existingUser) {
-      return null
+      return null;
       //throw new ConflictException(ERRORS.USER_EXISTS);
     }
 
@@ -63,7 +64,7 @@ export class UserExternal implements IUserExternal {
 
     const username = registerContract.username || registerContract.email;
     if (!username || typeof username !== 'string') {
-      return null
+      return null;
       // throw new ConflictException(ERRORS.USER_EXISTS);
     }
 
@@ -75,7 +76,7 @@ export class UserExternal implements IUserExternal {
       authMethod: 'local',
     });
 
-    return this.userRepository.sanitize(user) as IUserContract;
+    return this.userRepository.sanitize(user);
   }
 
   private async checkUser(username: string, password: string) {

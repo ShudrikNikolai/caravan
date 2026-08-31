@@ -22,9 +22,7 @@ export interface IChangePasswordData {
 export interface IUserExternal {
   findUserById(id: string): Promise<IUserContract | null>;
   findByUsername(username: string): Promise<IUserContract | null>;
-  updateUserPassword(
-    data: IChangePasswordData,
-  ): Promise<IUserContract | null>;
+  updateUserPassword(data: IChangePasswordData): Promise<IUserContract | null>;
   createUser(
     registerContract: IRegisterContract,
   ): Promise<IUserContract | null>;

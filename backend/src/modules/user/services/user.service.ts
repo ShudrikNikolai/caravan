@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { User } from '../entities/user.entity';
 import { UserDeviceRepository } from '../repositories/device.repository';
 import { UserRepository } from '../repositories/user.repository';
 import { ERRORS } from '../consts';
+import { TUpdateUserSchema } from '../schemas/user-update.schema';
+import { IUserResponseSchema } from '../schemas/user-response.schema';
 
 @Injectable()
 export class UserService {
@@ -10,13 +11,13 @@ export class UserService {
     private readonly userRepository: UserRepository,
     private readonly userDeviceRepository: UserDeviceRepository,
   ) {}
-  async findById(id: string): Promise<Partial<User>> {
+  async findById(id: string): Promise<IUserResponseSchema | null> {
     const user = await this.userRepository.findUserById(id);
     if (!user) throw new NotFoundException(ERRORS.USER_NOT_FOUND);
     return user;
   }
 
-  async findByUsername(username: string): Promise<Partial<User> | null> {
+  async findByUsername(username: string): Promise<IUserResponseSchema | null> {
     const user = await this.userRepository.findByUsername(username);
     if (!user) throw new NotFoundException(ERRORS.USER_NOT_FOUND);
     return user;
@@ -24,9 +25,9 @@ export class UserService {
 
   async updateById(
     id: string,
-    data: Partial<User>,
-  ): Promise<Partial<User> | null> {
-    const user = await this.userRepository.update(id, data);
+    data: TUpdateUserSchema,
+  ): Promise<IUserResponseSchema | null> {
+    const user = await this.userRepository.updateUserById(id, data);
     if (!user) throw new NotFoundException(ERRORS.USER_NOT_FOUND);
     return user;
   }

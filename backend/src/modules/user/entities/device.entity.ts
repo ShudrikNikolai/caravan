@@ -10,6 +10,9 @@ export class UserDevice extends BaseEntity {
   @Column({ type: 'varchar', length: 255 })
   device: string;
 
-  @ManyToOne(() => User, (user) => user.devices)
+  @ManyToOne(() => User, (user) => user.devices, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'user_id' })
   user: User;
 }

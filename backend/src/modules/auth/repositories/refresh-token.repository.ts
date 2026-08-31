@@ -53,7 +53,12 @@ export class RefreshTokenRepository extends TypeOrmRepository<RefreshToken> {
   async revokeAllForUser(userId: string, revokedBy?: string): Promise<void> {
     await this.repository.update(
       { userId, isRevoked: false } as FindOptionsWhere<RefreshToken>,
-      { isRevoked: true, revokedAt: new Date(), revokedBy: revokedBy ?? null, revokedReason: 'Revoked all tokens' },
+      {
+        isRevoked: true,
+        revokedAt: new Date(),
+        revokedBy: revokedBy ?? null,
+        revokedReason: 'Revoked all tokens',
+      },
     );
   }
 

@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigService } from '@/config';
 
-const entities = [];
 @Module({
   imports: [
     TypeOrmModule.forRootAsync({
@@ -15,9 +14,10 @@ const entities = [];
         password: config.database.password,
         database: config.database.database,
         ssl: config.database.ssl,
-        synchronize: config.database.sync,
+        synchronize: false, //config.database.sync,
         logging: config.database.logging,
-        entities,
+        autoLoadEntities: true,
+        migrations: ['dist/infrastructure/database/migrations/*.{js,ts}'],
       }),
     }),
   ],

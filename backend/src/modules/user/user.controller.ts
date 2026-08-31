@@ -28,9 +28,9 @@ export class UserController {
   @ApiOperation({ summary: 'Update current user profile' })
   async updateMe(
     @CurrentUser('id') userId: string,
-    @Body() updateUserDto: TUpdateUserSchema,
+    @Body() updateUserSchema: TUpdateUserSchema,
   ) {
-    return this.usersService.updateById(userId, updateUserDto);
+    return this.usersService.updateById(userId, updateUserSchema);
   }
 
   @Get(':id')

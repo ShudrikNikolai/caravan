@@ -13,11 +13,15 @@ import { RefreshTokenPayload } from '../interfaces/refresh-token.interface';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
 import { ExternalUserService } from './external-user.service';
 import { TLoginSchema } from '../schemas/login.schema';
-import { DEFAULT_TIME, ERRORS } from '../consts';
+import { CONSTS, DEFAULT_TIME, ERRORS } from '../consts';
 import { IUserContract } from '@/common/contracts/user-contract.interface';
 import { TStrictRegisterSchema } from '../schemas/register.schema';
-import { Session } from 'express-session';
-import { LoginResponse } from '../interfaces/login-response.inteface';
+import {
+  ILoginResponseSchema,
+  IRegisterResponseSchema,
+  ISessionResponse,
+  IUserRes,
+} from '../schemas/reponse.schema';
 
 @Injectable()
 export class AuthService {
@@ -29,7 +33,11 @@ export class AuthService {
     private readonly sessionService: SessionService,
   ) {}
 
-  async login(loginSchema: TLoginSchema, session?: Session): Promise<LoginResponse> {
+  async login(
+    loginSchema: TLoginSchema,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<ILoginResponseSchema> {
     const user = await this.externalUserService.validateUser(
       loginSchema.username,
       loginSchema.password,
@@ -39,32 +47,24 @@ export class AuthService {
       throw new UnauthorizedException(ERRORS.INVALID_CREDENTIALS);
     }
 
-    const tokens = await this.generateTokens(user);
+    const isBlacklisted = await this.checkUserInBlackList(user.id);
 
-    const expiresAt = this.getRefreshTokenExpiry();
-
-    // Сохраняем refresh token в базу
-    await this.refreshTokenRepository.createRefreshToken(
-      user.id,
-      tokens.refreshJti,
-      expiresAt,
-    );
-
-    // Сохраняем сессию (если используется)
-    let sessionId: string = '';
-    if (
-      session &&
-      typeof session === 'object' &&
-      'id' in session &&
-      'user' in session
-    ) {
-      session.user = user;
-      sessionId = String(session.id);
+    if (isBlacklisted) {
+      throw new UnauthorizedException();
     }
 
+    const tokens = await this.generateTokens(user);
+
+    // Сохраняем сессию (если используется)
+    let sessionId: string | undefined;
+
     // Создаем сессию в Redis
-    if (this.configService.auth.sessionEnb && sessionId) {
-      await this.sessionService.createSession(user.id, sessionId);
+    if (this.configService.auth.sessionEnb) {
+      sessionId = await this.sessionService.createSession(
+        user.id,
+        ipAddress,
+        userAgent,
+      );
     }
 
     return {
@@ -74,13 +74,15 @@ export class AuthService {
     };
   }
 
-  async getUserProfile(userId: string): Promise<Partial<IUserContract>> {
+  async getUserProfile(userId: string): Promise<IUserRes> {
     const user = await this.externalUserService.findUserById(userId);
     if (!user) throw new NotFoundException(ERRORS.USER_NOT_FOUND);
     return user;
   }
 
-  async register(registerSchema: TStrictRegisterSchema): Promise<LoginResponse> {
+  async register(
+    registerSchema: TStrictRegisterSchema,
+  ): Promise<IRegisterResponseSchema> {
     // Проверяем, существует ли пользователь
     const existingUser = await this.externalUserService.findByUsername(
       registerSchema.username,
@@ -98,19 +100,11 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException(ERRORS.INTERNAL)
+      throw new UnauthorizedException(ERRORS.INTERNAL);
     }
 
     // Генерируем токены для автоматического логина после регистрации
     const tokens = await this.generateTokens(user);
-    const expiresAt = this.getRefreshTokenExpiry();
-
-    // Сохраняем refresh token
-    await this.refreshTokenRepository.createRefreshToken(
-      user.id,
-      tokens.refreshJti,
-      expiresAt,
-    );
 
     return {
       user,
@@ -138,12 +132,6 @@ export class AuthService {
     );
 
     const tokens = await this.generateTokens(user);
-    const expiresAt = this.getRefreshTokenExpiry();
-    await this.refreshTokenRepository.createRefreshToken(
-      user.id,
-      tokens.refreshJti,
-      expiresAt,
-    );
 
     return tokens;
   }
@@ -189,7 +177,7 @@ export class AuthService {
       id,
       username,
       oldpass,
-      newpass
+      newpass,
     });
 
     if (!user) {
@@ -202,8 +190,25 @@ export class AuthService {
     return true;
   }
 
+  async getActiveSessions(userId: string): Promise<ISessionResponse[]> {
+    if (!this.configService.auth.sessionEnb) return [];
+
+    const sessions = await this.sessionService.getUserSessions(userId);
+
+    if (sessions.length === 0) return [];
+
+    return sessions.map((session) => ({
+      id: session.sid,
+      ipAddress: session.ipAddress,
+      userAgent: session.userAgent,
+      createdAt: session.createdAt,
+      lastActivityAt: session.lastActivityAt,
+    }));
+  }
+
   private async generateTokens(user: IUserContract): Promise<Tokens> {
     const refreshJti = uuidv4();
+    const expiresAt = this.getRefreshTokenExpiry();
 
     const accessTokenPayload: JwtPayload = {
       sub: user.id,
@@ -237,6 +242,12 @@ export class AuthService {
         },
         refreshTokenOptions,
       ),
+      // Сохраняем refresh token в базу
+      this.refreshTokenRepository.createRefreshToken(
+        user.id,
+        refreshJti,
+        expiresAt,
+      ),
     ]);
 
     // Вычисляем время жизни токенов
@@ -258,19 +269,8 @@ export class AuthService {
     };
   }
 
-  async getActiveSessions(userId: string): Promise<any[]> {
-    // TODO переделать
-    if (this.configService.auth.sessionEnb) {
-      return this.sessionService.getUserSessions(userId);
-    }
-
-    // Возвращаем refresh tokens как альтернативу
-    // return this.refreshTokenRepository.findMany({
-    //   filter: { userId, isRevoked: false },
-    //   sort: { field: 'created_at', direction: 'DESC' }
-    // });
-    // //
-    return [];
+  private checkUserInBlackList(jti: string): Promise<boolean> {
+    return this.sessionService.exists(`${CONSTS.BLACK_LIST}${jti}`);
   }
 
   private getRefreshTokenExpiry(): Date {

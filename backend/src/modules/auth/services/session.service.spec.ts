@@ -1,3 +1,4 @@
+// TODO upd and fix
 import { SessionService } from './session.service';
 import { RedisService } from '@/infrastructure/redis/redis.service';
 import { ConfigService } from '@/config';
@@ -96,7 +97,12 @@ describe('SessionService', () => {
 
     it('удаляет сессию и вычищает её из списка сессий пользователя', async () => {
       redisService.get
-        .mockResolvedValueOnce({ sid: 'sess-1', userId: 'user-1', createdAt: '', lastActivityAt: '' }) // getSession internal
+        .mockResolvedValueOnce({
+          sid: 'sess-1',
+          userId: 'user-1',
+          createdAt: '',
+          lastActivityAt: '',
+        }) // getSession internal
         .mockResolvedValueOnce(['sess-1', 'sess-2']); // userSessions list
 
       await sessionService.destroySession('sess-1');
@@ -111,7 +117,12 @@ describe('SessionService', () => {
 
     it('удаляет ключ списка сессий целиком, если это была последняя сессия', async () => {
       redisService.get
-        .mockResolvedValueOnce({ sid: 'sess-1', userId: 'user-1', createdAt: '', lastActivityAt: '' })
+        .mockResolvedValueOnce({
+          sid: 'sess-1',
+          userId: 'user-1',
+          createdAt: '',
+          lastActivityAt: '',
+        })
         .mockResolvedValueOnce(['sess-1']);
 
       await sessionService.destroySession('sess-1');

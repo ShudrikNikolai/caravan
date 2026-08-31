@@ -1,3 +1,4 @@
+// TODO upd
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { UserExternal } from './user-external.service';

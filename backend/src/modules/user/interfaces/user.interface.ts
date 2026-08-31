@@ -1,7 +1,8 @@
 import { User } from '../entities/user.entity';
+import { IUserResponseSchema } from '../schemas/user-response.schema';
 
 export interface IUserRepository {
-  findByUsername(username: string): Promise<Partial<User> | null>;
+  findByUsername(username: string): Promise<IUserResponseSchema | null>;
   createWithTransaction(data: ICreateUserData): Promise<Partial<User> | null>;
 }
 
