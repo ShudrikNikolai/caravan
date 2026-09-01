@@ -1,0 +1,68 @@
+services:
+  db:
+    image: postgres:18.3
+    container_name: caravan-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: dbdev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+  redis:
+    image: redis:8.8-m03-trixie
+    container_name: caravan-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: caravan-backend
+    restart: unless-stopped
+    env_file:
+      - ./config/.env.backend
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      DB_DATABASE: dbdev
+
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+      NODE_ENV: production
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "3000:3000"
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:3000
+    container_name: caravan-frontend
+    restart: unless-stopped
+    env_file:
+      - ./config/.env.frontend
+    environment:
+      NODE_ENV: production
+    depends_on:
+      - backend
+    ports:
+      - "3100:3000"
+
+volumes:
+  postgres_data:
+  redis_data:

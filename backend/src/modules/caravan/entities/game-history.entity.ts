@@ -1,6 +1,5 @@
 import { BaseEntity } from '@/common/entities/base.entity';
-import { User } from '@/modules/user/entities/user.entity';
-import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 
 export interface CaravanHistorySnapshot {
   lanes: unknown[];
@@ -10,10 +9,8 @@ export interface CaravanHistorySnapshot {
 
 @Entity('game_histories')
 export class GameHistory extends BaseEntity {
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'master_id' })
-  @Index()
-  master: User;
+  @Column({ name: 'master_id' })
+  master: string;
 
   @Column({ name: 'rival_id' })
   rivalId: string;

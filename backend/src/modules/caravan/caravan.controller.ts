@@ -1,25 +1,47 @@
-import { Body, Controller, Get, Post, Param, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+
 import { CurrentUser } from '@/modules/auth/decorators/current-user.decorator';
+
+import { CaravanGateway } from './caravan.gateway';
 import { CaravanService } from './services/caravan.service';
-import { InviteDto } from './schemas/invite.schema';
 
 @ApiTags('caravan')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('caravan')
 export class CaravanController {
-  constructor(private readonly caravanService: CaravanService) {}
+  constructor(
+    private readonly caravanService: CaravanService,
+    private readonly caravanGateway: CaravanGateway,
+  ) {}
 
-  @Post('invite')
-  async invite(@CurrentUser('id') userId: string, @Body() dto: InviteDto) {
-    return this.caravanService.invite(userId, dto.rivalId);
+  @Post('rooms')
+  async createRoom(@CurrentUser('id') userId: string) {
+    return this.caravanService.createRoom(userId);
+  }
+
+  @Get('rooms/:roomId')
+  async getRoom(@Param('roomId') roomId: string) {
+    return this.caravanService.getRoom(roomId);
+  }
+
+  @Post('rooms/:roomId/join')
+  async joinRoom(
+    @CurrentUser('id') userId: string,
+    @Param('roomId') roomId: string,
+  ) {
+    const room = await this.caravanService.joinRoom(roomId, userId);
+
+    return room;
   }
 
   @Post('rooms/:roomId/start')
   async start(@Param('roomId') roomId: string) {
-    return this.caravanService.startGame(roomId);
+    const state = await this.caravanService.startGame(roomId);
+
+    this.caravanGateway.sendGameState(state);
+
+    return state;
   }
 
   @Get('me')

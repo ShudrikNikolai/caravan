@@ -1,9 +1,9 @@
 import { Card, createDeck, shuffle } from './card';
-import { GameState, PlayerState } from './game-state';
+import { GameState, GamePlayer } from './game-state';
 import { createLane } from './lane';
 
-const HAND_SIZE = 5;
-const LANES_PER_PLAYER = 3;
+export const HAND_SIZE = 5; // TODO const
+export const LANES_PER_PLAYER = 3;
 
 export function dealInitialState(
   gameId: string,
@@ -36,11 +36,11 @@ export function dealInitialState(
     };
   });
 
-  const player1: PlayerState = {
+  const player1: GamePlayer = {
     id: player1Id,
     hand: remaining.splice(0, HAND_SIZE),
   };
-  const player2: PlayerState = {
+  const player2: GamePlayer = {
     id: player2Id,
     hand: remaining.splice(0, HAND_SIZE),
   };
@@ -51,9 +51,15 @@ export function dealInitialState(
     id: gameId,
     players: [player1, player2],
     lanes: [...player1Lanes, ...player2Lanes],
-    deck: remaining, // колода для добор
+    deck: remaining,
     currentPlayerId: player1Id,
     status: 'in_progress',
+
+    passStreak: {
+      [player1Id]: 0,
+      [player2Id]: 0,
+    },
+
     createdAt: now,
     updatedAt: now,
   };

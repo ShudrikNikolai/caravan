@@ -4,8 +4,9 @@ import { DataSource } from 'typeorm';
 import { User } from '@/modules/user/entities/user.entity';
 import { UserDevice } from '@/modules/user/entities/device.entity';
 import { RefreshToken } from '@/modules/auth/entities/refresh-token.entity';
+import { GameHistory } from '@/modules/caravan/entities/game-history.entity';
 
-const entities = [User, UserDevice, RefreshToken];
+const entities = [User, UserDevice, RefreshToken, GameHistory];
 
 const dataSource = new DataSource({
   type: 'postgres',

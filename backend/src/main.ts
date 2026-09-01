@@ -5,6 +5,7 @@ import { VersioningType } from '@nestjs/common';
 import { LoggerService } from '@/infra/logger/logger.service';
 import { ConfigService } from './config';
 import cookieParser from 'cookie-parser';
+
 // TODO добавить линтер на пакеты
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -24,7 +25,7 @@ async function bootstrap() {
   });
 
   app.enableCors({
-    origin: '*', //process.env.APP_BASE_URL, // TODO
+    origin: 'http://localhost:3100', //process.env.APP_BASE_URL, // TODO
     credentials: true,
   });
 

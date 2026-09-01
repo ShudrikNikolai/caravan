@@ -1,19 +1,25 @@
 import { Card } from './card';
 import { Lane } from './lane';
 
-export interface PlayerState {
+export interface GamePlayer {
   id: string;
   hand: Card[];
 }
 
 export interface GameState {
   id: string;
-  players: [PlayerState, PlayerState];
-  lanes: Lane[]; // 6 лейнов: по 3 на игрока
+  players: [GamePlayer, GamePlayer];
+  lanes: Lane[];
   deck: Card[];
+
   currentPlayerId: string;
+
   status: 'waiting' | 'in_progress' | 'finished';
+
   winnerId?: string;
+
+  passStreak: Record<string, number>;
+
   createdAt: string;
   updatedAt: string;
 }

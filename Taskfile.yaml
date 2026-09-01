@@ -1,0 +1,62 @@
+version: '3'
+
+tasks:
+  docker:up:
+    desc: Start all services
+    cmds:
+      - docker compose -f platform/docker-compose.yml up -d
+
+  docker:up:build:
+    desc: Build and start all services
+    cmds:
+      - docker compose -f platform/docker-compose.yml up -d --build
+
+  docker:down:
+    desc: Stop all services
+    cmds:
+      - docker compose -f platform/docker-compose.yml down
+
+  docker:down:volumes:
+    desc: Stop all services and remove volumes
+    cmds:
+      - docker compose -f platform/docker-compose.yml down -v
+
+  docker:restart:
+    desc: Restart all services
+    cmds:
+      - docker compose -f platform/docker-compose.yml restart
+
+  docker:logs:
+    desc: Show logs
+    cmds:
+      - docker compose -f platform/docker-compose.yml logs -f
+
+  docker:logs:backend:
+    desc: Show backend logs
+    cmds:
+      - docker compose -f platform/docker-compose.yml logs -f backend
+
+  docker:logs:frontend:
+    desc: Show frontend logs
+    cmds:
+      - docker compose -f platform/docker-compose.yml logs -f frontend
+
+  docker:ps:
+    desc: Show containers
+    cmds:
+      - docker compose -f platform/docker-compose.yml ps
+
+  docker:dev:
+    desc: Start development infrastructure
+    cmds:
+      - docker compose -f platform/docker-compose.dev.yml up -d
+
+  docker:dev:down:
+    desc: Stop development infrastructure
+    cmds:
+      - docker compose -f platform/docker-compose.dev.yml down
+
+  docker:dev:logs:
+    desc: Show development infrastructure logs
+    cmds:
+      - docker compose -f platform/docker-compose.dev.yml logs -f

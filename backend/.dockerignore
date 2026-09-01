@@ -1,5 +1,9 @@
-test
-.dist
-
-README.md
-.env-example
+node_modules
+dist
+coverage
+.git
+.env
+.env.*
+npm-debug.log
+yarn-error.log
+Dockerfile

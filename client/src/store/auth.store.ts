@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+
 import { api, ApiError, PublicUser, RegisterPayload } from '@/lib/api';
 
 interface AuthState {
@@ -18,47 +19,92 @@ export const useAuthStore = create<AuthState>((set) => ({
   error: null,
 
   login: async (email, password) => {
-    set({ status: 'loading', error: null });
+    set({
+      status: 'loading',
+      error: null,
+    });
+
     try {
-      const { user } = await api.login({ email, password });
-      set({ user, status: 'authenticated' });
-    } catch (e) {
+      const { user } = await api.login({
+        email,
+        password,
+      });
+
+      set({
+        user,
+        status: 'authenticated',
+        error: null,
+      });
+    } catch (error) {
       set({
         status: 'unauthenticated',
-        error: e instanceof ApiError ? e.message : 'Ошибка входа',
+        error: error instanceof ApiError ? error.message : 'Ошибка входа',
       });
-      throw e;
+
+      throw error;
     }
   },
 
   register: async (payload) => {
-    set({ status: 'loading', error: null });
+    set({
+      status: 'loading',
+      error: null,
+    });
+
     try {
       const { user } = await api.register(payload);
-      set({ user, status: 'authenticated' });
-    } catch (e) {
+
+      set({
+        user,
+        status: 'authenticated',
+        error: null,
+      });
+    } catch (error) {
       set({
         status: 'unauthenticated',
-        error: e instanceof ApiError ? e.message : 'Ошибка регистрации',
+        error: error instanceof ApiError ? error.message : 'Ошибка регистрации',
       });
-      throw e;
+
+      throw error;
     }
   },
 
   logout: async () => {
-    await api.logout().catch(() => null); // даже если запрос упал — чистим локальный стейт
-    set({ user: null, status: 'unauthenticated' });
-  },
-
-  fetchMe: async () => {
-    set({ status: 'loading' });
     try {
-      const user = await api.me();
-      set({ user, status: 'authenticated' });
-    } catch {
-      set({ user: null, status: 'unauthenticated' });
+      await api.logout();
+    } finally {
+      set({
+        user: null,
+        status: 'unauthenticated',
+        error: null,
+      });
     }
   },
 
-  clearError: () => set({ error: null }),
+  fetchMe: async () => {
+    set({
+      status: 'loading',
+      error: null,
+    });
+
+    try {
+      const user = await api.me();
+
+      set({
+        user,
+        status: 'authenticated',
+      });
+    } catch {
+      set({
+        user: null,
+        status: 'unauthenticated',
+      });
+    }
+  },
+
+  clearError: () => {
+    set({
+      error: null,
+    });
+  },
 }));

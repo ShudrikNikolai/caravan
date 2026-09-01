@@ -40,8 +40,16 @@ export default function RegisterPage() {
     handleSubmit,
     formState: { errors },
   } = useForm<RegisterForm>({ resolver: zodResolver(RegisterSchema) });
+  console.log('AAAAAA >', {
+    // control,
+    // handleSubmit,
+    // formState: { errors },
+    // registerUser,
+    errors,
+  });
 
   const onSubmit = async (data: RegisterForm) => {
+    console.log('data >>>', data);
     try {
       await registerUser({
         email: data.email,
