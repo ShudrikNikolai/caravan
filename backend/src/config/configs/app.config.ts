@@ -6,6 +6,7 @@ const AppSchema = z.object({
   APP_NAME: z.string().min(1),
   NODE_ENV: z.enum(['development', 'production', 'test']),
   APP_BASE_URL: z.string(),
+  ALLOWED_ORIGIN: z.string(),
   APP_GLOBAL_DEFAULT_API_VERSION: z.string().min(1).max(10),
   APP_GLOBAL_PREFIX: z.string().min(1),
   APP_LOCALE: z.string().min(2),
@@ -17,6 +18,7 @@ export const AppConfig = registerAs('app' as const, () => {
   return {
     port: parsed.APP_PORT,
     name: parsed.APP_NAME,
+    allowedOrigin: parsed.ALLOWED_ORIGIN,
     nodeEnv: parsed.NODE_ENV,
     baseUrl: parsed.APP_BASE_URL,
     version: parsed.APP_GLOBAL_DEFAULT_API_VERSION,

@@ -8,11 +8,6 @@ import { Configs } from './configs';
   imports: [
     NestConfigModule.forRoot({
       load: [...Configs],
-      // envFilePath: `.env.${process.env.NODE_ENV || 'development'}`,
-      // validationOptions: {
-      //     allowUnknown: true,
-      //     abortEarly: false,
-      // },
     }),
   ],
   providers: [ConfigService],

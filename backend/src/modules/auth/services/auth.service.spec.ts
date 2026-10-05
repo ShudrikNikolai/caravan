@@ -1,4 +1,3 @@
-// TODO upd and fix
 import { UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { ExternalUserService } from './external-user.service';

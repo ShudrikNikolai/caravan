@@ -10,7 +10,6 @@ const GAME_TTL_SECONDS = 86400;
 const KEYS = {
   room: (roomId: string) => `room:${roomId}`,
   roomByUser: (userId: string) => `room:by-user:${userId}`,
-
   game: (gameId: string) => `game:${gameId}`,
   gameByUser: (userId: string) => `game:by-user:${userId}`,
 } as const;
@@ -38,7 +37,6 @@ export class GameStateRepository {
 
     await Promise.all([
       this.redisService.set(KEYS.room(room.id), room, ROOM_TTL_SECONDS),
-
       this.redisService.set(
         KEYS.roomByUser(masterId),
         room.id,
@@ -78,7 +76,6 @@ export class GameStateRepository {
 
     await Promise.all([
       this.redisService.set(KEYS.room(roomId), updatedRoom, ROOM_TTL_SECONDS),
-
       this.redisService.set(KEYS.roomByUser(rivalId), roomId, ROOM_TTL_SECONDS),
     ]);
 
@@ -154,9 +151,7 @@ export class GameStateRepository {
 
     await Promise.all([
       this.redisService.delete(KEYS.game(gameId)),
-
       this.redisService.delete(KEYS.gameByUser(playerOne.id)),
-
       this.redisService.delete(KEYS.gameByUser(playerTwo.id)),
     ]);
   }

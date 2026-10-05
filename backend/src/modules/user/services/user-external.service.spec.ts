@@ -1,4 +1,3 @@
-// TODO upd
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { UserExternal } from './user-external.service';
@@ -65,8 +64,6 @@ describe('UserExternal', () => {
         }),
       ).rejects.toThrow(ConflictException);
 
-      // регрессия на инвертированный баг: если username занят,
-      // createWithTransaction вызываться не должен
       expect(userRepository.createWithTransaction).not.toHaveBeenCalled();
     });
 
@@ -129,7 +126,6 @@ describe('UserExternal', () => {
       const result = await userExternal.validateUser('nik', 'correct-password');
 
       expect(result).toEqual(sanitized);
-      // критично: passwordHash не должен утечь наружу
       expect(result).not.toHaveProperty('passwordHash');
     });
   });

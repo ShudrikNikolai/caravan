@@ -10,8 +10,8 @@ export class UserDeviceRepository extends TypeOrmRepository<UserDevice> {
 
   constructor(
     @InjectRepository(UserDevice)
-    protected readonly repUserDevice: Repository<UserDevice>,
+    protected readonly repository: Repository<UserDevice>,
   ) {
-    super(repUserDevice);
+    super(repository);
   }
 }

@@ -5,7 +5,6 @@ import { API_AUTH } from '../utils/const.util';
 export function createAuthGuard(strategy: string | string[]): Type<IAuthGuard> {
   class MixinAuthGuard extends AuthGuard(strategy) {
     handleRequest<TUser>(err: unknown, user: TUser, info: unknown) {
-      console.log('createAuthGuard >>>>>>>', { err, user, info });
       if (err || !user) {
         if (
           info &&

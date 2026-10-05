@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { ConfigType, registerAs } from '@nestjs/config';
-// DB_URI='postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}'
 
 const DataBaseSchema = z.object({
   DB_PORT: z.coerce.number().min(1).max(65535),

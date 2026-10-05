@@ -22,7 +22,6 @@ export class RefreshTokenRepository extends TypeOrmRepository<RefreshToken> {
     });
   }
 
-  // запилить транзакцию на основные методы создания и обновления по работе с токеном TODO.
   async createRefreshToken(
     userId: string,
     jti: string,
@@ -51,7 +50,7 @@ export class RefreshTokenRepository extends TypeOrmRepository<RefreshToken> {
   }
 
   async revokeAllForUser(userId: string, revokedBy?: string): Promise<void> {
-    await this.repository.update(
+    await this.update(
       { userId, isRevoked: false } as FindOptionsWhere<RefreshToken>,
       {
         isRevoked: true,

@@ -14,7 +14,7 @@ import { ConfigService } from '@/config';
         password: config.database.password,
         database: config.database.database,
         ssl: config.database.ssl,
-        synchronize: false, //config.database.sync,
+        synchronize: false,
         logging: config.database.logging,
         autoLoadEntities: true,
         migrations: ['dist/infrastructure/database/migrations/*.{js,ts}'],

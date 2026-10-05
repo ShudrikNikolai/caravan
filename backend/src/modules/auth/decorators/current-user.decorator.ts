@@ -3,8 +3,7 @@ import { JwtPayload } from '../interfaces/jwt-payload.interface';
 import { Request } from 'express';
 
 export const CurrentUser = createParamDecorator(
-  (data: keyof JwtPayload, ctx: ExecutionContext) => {
-    // : null | any TODO
+  (data: keyof JwtPayload, ctx: ExecutionContext): unknown => {
     const request = ctx.switchToHttp().getRequest<Request>();
     const user = 'user' in request ? request.user : null;
 
@@ -12,6 +11,6 @@ export const CurrentUser = createParamDecorator(
       return null;
     }
 
-    return data ? user[data] : user;
+    return data in user ? user[data] : user;
   },
 );

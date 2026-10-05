@@ -49,26 +49,21 @@ export class UserExternal implements IUserExternal {
   async createUser(
     registerContract: IRegisterContract,
   ): Promise<IUserContract | null> {
-    // Проверяем, существует ли пользователь
     const existingUser = await this.userRepository.findByUsername(
       registerContract.username,
     );
 
     if (existingUser) {
       return null;
-      //throw new ConflictException(ERRORS.USER_EXISTS);
     }
 
-    // Хэшируем пароль
     const passwordHash = await this.createHash(registerContract.password);
 
     const username = registerContract.username || registerContract.email;
     if (!username || typeof username !== 'string') {
       return null;
-      // throw new ConflictException(ERRORS.USER_EXISTS);
     }
 
-    // Создаем пользователя с транзакцией
     const user = await this.userRepository.createWithTransaction({
       username,
       email: registerContract.email ?? '',

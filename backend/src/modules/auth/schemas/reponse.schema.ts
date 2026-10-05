@@ -1,4 +1,3 @@
-// TODO заменить потом на zod
 import { IUserContract } from '@/common/contracts/user-contract.interface';
 import { Tokens } from '../interfaces/tokens.interface';
 

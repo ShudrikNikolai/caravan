@@ -1,6 +1,5 @@
 import { ConfigType, registerAs } from '@nestjs/config';
 import { z } from 'zod';
-// REDIS_URI='redis://${REDIS_USER}:${REDIS_PASSWORD}@${REDIS_HOST}:${REDIS_PORT}'
 
 const RedisSchema = z.object({
   REDIS_HOST: z.string().min(5),
