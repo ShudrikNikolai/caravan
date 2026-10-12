@@ -1,12 +1,22 @@
+'use client';
+
 import { useState } from 'react';
-import { Description } from '@heroui/react';
 import type { GameStateDto } from '@/lib/api';
 import type { useCaravanSocket } from '@/lib/caravan-socket';
 import { ErrorCard } from './fullscreen';
 import { LaneRow } from './lane-row';
 import { PlayerHand } from './player-hand';
+import { Alert, PageShell, panelClass } from './ui';
 
 const FACE_RANKS = ['J', 'Q', 'K', 'JOKER'];
+
+type Tone = 'turn' | 'wait' | 'win' | 'lose';
+const toneClass: Record<Tone, string> = {
+  turn: 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30',
+  wait: 'bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300',
+  win: 'bg-emerald-500 text-white',
+  lose: 'bg-red-500/15 text-red-500',
+};
 
 type Props = {
   userId: string;
@@ -78,6 +88,23 @@ export function GameBoard({
     send({ type: 'end_turn' });
   };
 
+  // Подсветка: что можно сделать выбранной картой прямо сейчас
+  const canPlayNumber =
+    isMyTurn && !!selectedCard && typeof selectedCard.rank === 'number';
+  const canPlayFace =
+    isMyTurn &&
+    !!selectedCard &&
+    FACE_RANKS.includes(String(selectedCard.rank));
+
+  const tone: Tone =
+    gameState.status === 'finished'
+      ? gameState.winnerId === userId
+        ? 'win'
+        : 'lose'
+      : isMyTurn
+        ? 'turn'
+        : 'wait';
+
   const statusText =
     gameState.status === 'finished'
       ? gameState.winnerId === userId
@@ -88,36 +115,54 @@ export function GameBoard({
         : 'Ход соперника';
 
   return (
-    <div className="flex min-h-screen flex-col gap-4 p-4">
-      <div className="flex items-center justify-between gap-4">
-        <Description>
-          {connected ? 'Подключено' : 'Подключение...'} · {statusText}
-        </Description>
-        {socketError && (
-          <Description className="text-danger">{socketError}</Description>
-        )}
+    <PageShell className="p-4 sm:p-6">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-5">
+        <header className="flex flex-wrap items-center justify-between gap-3">
+          <span className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+            <span
+              className={`h-2 w-2 rounded-full ${
+                connected ? 'bg-emerald-500' : 'animate-pulse bg-amber-500'
+              }`}
+            />
+            {connected ? 'Подключено' : 'Подключение...'}
+          </span>
+
+          <span
+            className={`rounded-full px-4 py-1.5 text-sm font-medium ${toneClass[tone]}`}
+          >
+            {statusText}
+          </span>
+        </header>
+
+        {socketError && <Alert>{socketError}</Alert>}
+
+        <div className={`${panelClass} flex flex-col gap-6 p-4 sm:p-6`}>
+          <LaneRow
+            title="Соперник"
+            lanes={opponentLanes}
+            highlightTargets={canPlayFace}
+            onTargetClick={playOnTarget}
+          />
+          <div className="h-px bg-zinc-200 dark:bg-white/10" />
+          <LaneRow
+            title="Вы"
+            lanes={myLanes}
+            highlightLanes={canPlayNumber}
+            highlightTargets={canPlayFace}
+            onTargetClick={playOnTarget}
+            onLaneClick={playIntoLane}
+          />
+        </div>
+
+        <PlayerHand
+          hand={me.hand}
+          selectedCard={selectedCard}
+          isMyTurn={isMyTurn}
+          onSelect={setSelectedCardId}
+          onDiscard={discardSelected}
+          onEndTurn={endTurn}
+        />
       </div>
-
-      <LaneRow
-        title="Соперник"
-        lanes={opponentLanes}
-        onTargetClick={playOnTarget}
-      />
-      <LaneRow
-        title="Вы"
-        lanes={myLanes}
-        onTargetClick={playOnTarget}
-        onLaneClick={playIntoLane}
-      />
-
-      <PlayerHand
-        hand={me.hand}
-        selectedCard={selectedCard}
-        isMyTurn={isMyTurn}
-        onSelect={setSelectedCardId}
-        onDiscard={discardSelected}
-        onEndTurn={endTurn}
-      />
-    </div>
+    </PageShell>
   );
 }

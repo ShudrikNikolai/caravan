@@ -1,5 +1,6 @@
-import { Button, Card, Description } from '@heroui/react';
 import type { CaravanCard } from '@/lib/api';
+import { cardLabel, PlayingCard } from './playing-card';
+import { btn, panelClass } from './ui';
 
 type Props = {
   hand: (CaravanCard | null)[];
@@ -18,52 +19,60 @@ export function PlayerHand({
   onDiscard,
   onEndTurn,
 }: Props) {
-  return (
-    <Card className="p-4">
-      <Card.Content className="flex flex-col gap-3">
-        <div className="flex flex-wrap gap-2">
-          {hand.map((card) =>
-            card ? (
-              <button
-                key={card.id}
-                type="button"
-                onClick={() =>
-                  onSelect(card.id === selectedCard?.id ? null : card.id)
-                }
-                className={`rounded border px-3 py-2 text-sm ${
-                  card.id === selectedCard?.id
-                    ? 'border-primary bg-primary/10'
-                    : 'border-default-300'
-                }`}
-              >
-                {card.rank} {card.suit}
-              </button>
-            ) : null,
-          )}
-        </div>
+  const hint = selectedCard
+    ? typeof selectedCard.rank === 'number'
+      ? `${cardLabel(selectedCard)}: кликните по своей дорожке, чтобы сыграть карту.`
+      : `${cardLabel(selectedCard)}: кликните по карте-цели на любой дорожке.`
+    : isMyTurn
+      ? 'Выберите карту в руке.'
+      : 'Ждём хода соперника…';
 
+  return (
+    <section className={`${panelClass} flex flex-col gap-5 p-4 sm:p-6`}>
+      <div className="flex min-h-32 flex-wrap items-end justify-center gap-2 pt-3 sm:gap-4">
+        {hand.map((card) => {
+          if (!card) return null;
+          const selected = card.id === selectedCard?.id;
+          return (
+            <button
+              key={card.id}
+              type="button"
+              aria-pressed={selected}
+              aria-label={cardLabel(card)}
+              onClick={() => onSelect(selected ? null : card.id)}
+              className={`w-16 rounded-lg transition duration-150 sm:w-24 ${
+                selected
+                  ? '-translate-y-3 ring-2 ring-indigo-400 shadow-lg shadow-indigo-500/30'
+                  : 'hover:-translate-y-1'
+              }`}
+            >
+              <PlayingCard card={card} />
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">{hint}</p>
         <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant="secondary"
-            isDisabled={!selectedCard || !isMyTurn}
-            onPress={onDiscard}
+          <button
+            type="button"
+            className={btn('secondary', 'sm')}
+            disabled={!selectedCard || !isMyTurn}
+            onClick={onDiscard}
           >
             Сбросить выбранную
-          </Button>
-          <Button size="sm" isDisabled={!isMyTurn} onPress={onEndTurn}>
+          </button>
+          <button
+            type="button"
+            className={btn('primary', 'sm')}
+            disabled={!isMyTurn}
+            onClick={onEndTurn}
+          >
             Закончить ход
-          </Button>
+          </button>
         </div>
-
-        {selectedCard && (
-          <Description className="text-sm">
-            Выбрано: {selectedCard.rank} {selectedCard.suit}. Для числовой карты
-            — кликните по своей дорожке. Для фигуры или джокера — кликните по
-            карте-цели.
-          </Description>
-        )}
-      </Card.Content>
-    </Card>
+      </div>
+    </section>
   );
 }

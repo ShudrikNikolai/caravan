@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { RefreshToken } from '../entities/refresh-token.entity';
 import { TypeOrmRepository } from '@/common/repositories/typeorm.repository';
 
@@ -50,8 +50,8 @@ export class RefreshTokenRepository extends TypeOrmRepository<RefreshToken> {
   }
 
   async revokeAllForUser(userId: string, revokedBy?: string): Promise<void> {
-    await this.update(
-      { userId, isRevoked: false } as FindOptionsWhere<RefreshToken>,
+    await this.repository.update(
+      { userId, isRevoked: false },
       {
         isRevoked: true,
         revokedAt: new Date(),

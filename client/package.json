@@ -1,6 +1,7 @@
 {
   "name": "client",
   "version": "0.5.0",
+  "description": "mvp",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
