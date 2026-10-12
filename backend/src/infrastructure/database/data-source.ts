@@ -5,6 +5,7 @@ import { User } from '@/modules/user/entities/user.entity';
 import { UserDevice } from '@/modules/user/entities/device.entity';
 import { RefreshToken } from '@/modules/auth/entities/refresh-token.entity';
 import { GameHistory } from '@/modules/caravan/entities/game-history.entity';
+import { join } from 'path';
 
 const entities = [User, UserDevice, RefreshToken, GameHistory];
 
@@ -17,7 +18,7 @@ const dataSource = new DataSource({
   database: process.env.DB_DATABASE,
   ssl: false,
   entities,
-  migrations: ['src/infrastructure/database/migrations/*.{ts,js}'],
+  migrations: [join(__dirname, 'migrations/*{.ts,.js}')],
   synchronize: false,
 });
 

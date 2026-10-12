@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 
 export const fieldClass = 'flex w-full flex-col gap-1.5';
-export const labelClass = 'text-sm font-medium text-zinc-700 dark:text-zinc-200';
+export const labelClass =
+  'text-sm font-medium text-zinc-700 dark:text-zinc-200';
 export const inputClass =
   'h-11 w-full rounded-xl border border-zinc-300 bg-white px-3.5 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 aria-[invalid=true]:border-red-500 dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-50 dark:placeholder:text-zinc-500';
 export const panelClass =

@@ -5,6 +5,12 @@ tasks:
     desc: Start all services
     cmds:
       - docker compose -f platform/docker-compose.yml up -d
+      - task db:migrate
+
+  db:migrate:
+    desc: Run TypeORM migrations inside backend container
+    cmds:
+      - docker compose -f platform/docker-compose.yml exec -T backend yarn migration:run:prod
 
   docker:up:build:
     desc: Build and start all services

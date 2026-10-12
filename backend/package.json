@@ -18,6 +18,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
+    "migration:run:prod": "typeorm migration:run -d dist/infrastructure/database/data-source.js",
     "migration:run": "yarn typeorm migration:run -d src/infrastructure/database/data-source.ts",
     "migration:revert": "yarn typeorm migration:revert -d src/infrastructure/database/data-source.ts",
     "migration:generate": "yarn typeorm migration:generate -d src/infrastructure/database/data-source.ts",

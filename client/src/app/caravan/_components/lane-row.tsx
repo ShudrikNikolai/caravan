@@ -83,13 +83,13 @@ export function LaneRow({
                       <PlayingCard card={entry.numberCard} />
                       {entry.attachedFaces.map((face, i) => (
                         <div
-                          key={face.id}
+                          key={`${face && face?.card?.id}`}
                           className="absolute left-0 top-0 w-full"
                           style={{
                             transform: `translate(calc(var(--fo) * ${i + 1}), ${(i + 1) * 5}px)`,
                           }}
                         >
-                          <PlayingCard card={face} />
+                          <PlayingCard card={face?.card} />
                         </div>
                       ))}
                     </div>

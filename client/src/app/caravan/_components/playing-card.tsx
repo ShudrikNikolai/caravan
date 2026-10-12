@@ -221,7 +221,9 @@ export function PlayingCard({
           >
             {label}
           </text>
-          {suit && <SuitShape suit={suit} x={11} y={34} size={10} color={color} />}
+          {suit && (
+            <SuitShape suit={suit} x={11} y={34} size={10} color={color} />
+          )}
         </>
       )}
     </g>
@@ -273,7 +275,15 @@ export function PlayingCard({
     );
     body = (
       <g>
-        <rect x={22} y={22} width={56} height={96} rx={3} fill={color} opacity={0.05} />
+        <rect
+          x={22}
+          y={22}
+          width={56}
+          height={96}
+          rx={3}
+          fill={color}
+          opacity={0.05}
+        />
         <rect
           x={22}
           y={22}
@@ -284,11 +294,28 @@ export function PlayingCard({
           stroke={color}
           strokeWidth={1.2}
         />
-        <line x1={22} y1={70} x2={78} y2={70} stroke={color} strokeWidth={0.8} opacity={0.5} />
+        <line
+          x1={22}
+          y1={70}
+          x2={78}
+          y2={70}
+          stroke={color}
+          strokeWidth={0.8}
+          opacity={0.5}
+        />
         {half}
         <g transform="rotate(180 50 70)">{half}</g>
-        <circle cx={50} cy={70} r={8.5} fill={PAPER} stroke={color} strokeWidth={1} />
-        {suit && <SuitShape suit={suit} x={50} y={70} size={11} color={color} />}
+        <circle
+          cx={50}
+          cy={70}
+          r={8.5}
+          fill={PAPER}
+          stroke={color}
+          strokeWidth={1}
+        />
+        {suit && (
+          <SuitShape suit={suit} x={50} y={70} size={11} color={color} />
+        )}
       </g>
     );
   } else if (n !== null && PIPS[n] && suit) {

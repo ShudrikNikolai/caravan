@@ -1,3 +1,5 @@
+name: caravan
+
 services:
   db:
     image: postgres:18.3
@@ -48,10 +50,8 @@ services:
 
   frontend:
     build:
-      context: ../frontend
+      context: ../client
       dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_API_URL: http://localhost:3000
     container_name: caravan-frontend
     restart: unless-stopped
     env_file:
@@ -63,6 +63,21 @@ services:
     ports:
       - "3100:3000"
 
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: caravan-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../nginx/sites:/etc/nginx/sites:ro
+      - nginx_cache:/tmp/nginx
+    depends_on:
+      - backend
+      - frontend
+
 volumes:
   postgres_data:
   redis_data:
+  nginx_cache:
