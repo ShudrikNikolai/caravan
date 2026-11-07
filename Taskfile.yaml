@@ -1,6 +1,11 @@
 version: '3'
 
 tasks:
+  default:
+    silent: true
+    cmds:
+      - task --list
+
   docker:up:
     desc: Start all services
     cmds:

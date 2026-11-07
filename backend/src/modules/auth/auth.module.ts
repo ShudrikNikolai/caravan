@@ -9,7 +9,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { RefreshTokenRepository } from './repositories/refresh-token.repository';
 import { SessionService } from './services/session.service';
-import { LocalStrategy } from './strategies/local.strategy';
 import { JwtRefreshStrategy } from './strategies/refresh-token.strategy';
 import { UserModule } from '../user/user.module';
 import { ExternalUserService } from './services/external-user.service';
@@ -35,7 +34,6 @@ import { ExternalUserService } from './services/external-user.service';
   providers: [
     AuthService,
     JwtStrategy,
-    LocalStrategy,
     JwtRefreshStrategy,
     ExternalUserService,
     RefreshTokenRepository,

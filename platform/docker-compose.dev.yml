@@ -1,3 +1,5 @@
+name: caravan-dev
+
 services:
   db:
     image: postgres:18.3

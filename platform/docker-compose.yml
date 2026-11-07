@@ -1,27 +1,31 @@
 name: caravan
 
+networks:
+  public:
+  data:
+    internal: true
+  monitoring:
+
 services:
   db:
     image: postgres:18.3
     container_name: caravan-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: root
-      POSTGRES_DB: dbdev
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${DB_USERNAME:-root}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-root}
+      POSTGRES_DB: ${DB_DATABASE:-dbdev}
     volumes:
       - postgres_data:/var/lib/postgresql
+    networks: [data]
 
   redis:
-    image: redis:8.8-m03-trixie
+    image: redis:8.0-alpine
     container_name: caravan-redis
     restart: unless-stopped
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
+    networks: [data]
 
   backend:
     build:
@@ -34,9 +38,9 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: 5432
-      DB_USERNAME: root
-      DB_PASSWORD: root
-      DB_DATABASE: dbdev
+      DB_USERNAME: ${DB_USERNAME:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-root}
+      DB_DATABASE: ${DB_DATABASE:-dbdev}
 
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -45,8 +49,7 @@ services:
     depends_on:
       - db
       - redis
-    ports:
-      - "3000:3000"
+    networks: [public, data]
 
   frontend:
     build:
@@ -60,8 +63,7 @@ services:
       NODE_ENV: production
     depends_on:
       - backend
-    ports:
-      - "3100:3000"
+    networks: [public]
 
   nginx:
     image: nginx:1.27-alpine
@@ -69,6 +71,7 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+      # - "443:443"  # когда появится TLS
     volumes:
       - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ../nginx/sites:/etc/nginx/sites:ro
@@ -76,8 +79,76 @@ services:
     depends_on:
       - backend
       - frontend
+    networks: [public]
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: caravan-cadvisor
+    restart: unless-stopped
+    privileged: true # нужен для доступа к части метрик
+    devices:
+      - /dev/kmsg
+    command:
+      - '--docker_only=true'
+      - '--housekeeping_interval=30s'
+      - '--store_container_labels=false'
+      - '--disable_metrics=percpu,sched,tcp,udp,advtcp,process'
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    networks: [monitoring]
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: caravan-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d' # храним 15 дней, чтобы не забить диск
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    depends_on:
+      - cadvisor
+    networks: [monitoring]
+
+  grafana:
+    image: grafana/grafana:11.6.0
+    container_name: caravan-grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin} # смените после первого входа
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+    ports:
+      - "127.0.0.1:3002:3000"
+    depends_on:
+      - prometheus
+    networks: [monitoring]
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: caravan-uptime-kuma
+    restart: unless-stopped
+    volumes:
+      - uptime_kuma_data:/app/data
+    ports:
+      - "127.0.0.1:3001:3001"
+    networks: [monitoring, public]
 
 volumes:
   postgres_data:
   redis_data:
   nginx_cache:
+  prometheus_data:
+  grafana_data:
+  uptime_kuma_data:

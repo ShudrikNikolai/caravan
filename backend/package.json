@@ -38,6 +38,8 @@
     "@nestjs/throttler": "^6.5.0",
     "@nestjs/typeorm": "^11.0.3",
     "@nestjs/websockets": "^11.1.28",
+    "@prometheus-io/client": "^0.16.1",
+    "@willsoto/nestjs-prometheus": "^7.0.0",
     "axios": "^1.18.1",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
