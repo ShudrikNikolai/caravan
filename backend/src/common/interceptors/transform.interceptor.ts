@@ -26,6 +26,10 @@ export class TransformInterceptor<T> implements NestInterceptor {
     const response = ctx.getResponse<Response>();
     const queryParams = request.query as IQueryParams;
 
+    if (request.originalUrl?.startsWith('/api/v1/metrics')) {
+      return next.handle();
+    }
+
     return next.handle().pipe(
       map((data: T | IApiResponse<T> | IRawPaginatedResult<T>) => {
         const statusCode = response.statusCode || HttpStatus.OK;

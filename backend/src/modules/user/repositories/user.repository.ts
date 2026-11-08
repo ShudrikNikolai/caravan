@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { ICreateUserData, IUserRepository } from '../interfaces/user.interface';
 import { TypeOrmRepository } from '@/common/repositories/typeorm.repository';
@@ -45,6 +45,12 @@ export class UserRepository
     return this.sanitize(user);
   }
 
+  async findByEmailOrUsername(identifier: string): Promise<User | null> {
+    return this.repository.findOne({
+      where: [{ username: identifier }, { email: identifier }],
+    });
+  }
+
   async updateUserById(
     id: string,
     data: Partial<User>,
@@ -59,6 +65,43 @@ export class UserRepository
   ): Promise<IUserResponseSchema | null> {
     const user = await this.update(id, { passwordHash });
     return this.sanitize(user);
+  }
+
+  async search(
+    query: string,
+    excludeId?: string,
+  ): Promise<IUserResponseSchema[]> {
+    const builder = this.repository
+      .createQueryBuilder('user')
+      .where('(user.username ILIKE :query OR user.email ILIKE :query)', {
+        query: `%${query}%`,
+      })
+      .orderBy('user.username', 'ASC')
+      .take(20);
+
+    if (excludeId) {
+      builder.andWhere('user.id != :excludeId', { excludeId });
+    }
+
+    const users = await builder.getMany();
+
+    return users
+      .map((user) => this.sanitize(user))
+      .filter((user): user is IUserResponseSchema => !!user);
+  }
+
+  async findByIds(ids: string[]): Promise<IUserResponseSchema[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const users = await this.repository.find({
+      where: { id: In(ids) },
+    });
+
+    return users
+      .map((user) => this.sanitize(user))
+      .filter((user): user is IUserResponseSchema => !!user);
   }
 
   async createWithTransaction(userData: ICreateUserData): Promise<User> {

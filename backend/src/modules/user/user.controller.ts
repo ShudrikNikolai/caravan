@@ -1,4 +1,3 @@
-import { CurrentUser } from '@/modules/auth/decorators';
 import {
   Body,
   Controller,
@@ -6,10 +5,13 @@ import {
   Param,
   ParseUUIDPipe,
   Patch,
+  Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserService } from './services/user.service';
-import type { TUpdateUserSchema } from './schemas/user-update.schema';
+import { SearchUsersQueryDto } from './schemas/search-users-query.schema';
+import { UpdateUserDto } from './schemas/user-update.schema';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
 
 @ApiTags('Users')
 @Controller('users')
@@ -28,9 +30,19 @@ export class UserController {
   @ApiOperation({ summary: 'Update current user profile' })
   async updateMe(
     @CurrentUser('id') userId: string,
-    @Body() updateUserSchema: TUpdateUserSchema,
+    @Body() updateUserSchema: UpdateUserDto,
   ) {
     return this.usersService.updateById(userId, updateUserSchema);
+  }
+
+  @Get('search')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Search users by username or email' })
+  async search(
+    @CurrentUser('id') userId: string,
+    @Query() query: SearchUsersQueryDto,
+  ) {
+    return this.usersService.search(query.q, userId);
   }
 
   @Get(':id')

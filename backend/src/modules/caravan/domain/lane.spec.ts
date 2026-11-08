@@ -7,12 +7,12 @@ import {
   findLaneCard,
   LaneCard,
 } from './lane';
-import { Card, Suit } from './card';
+import { Card, NumberRank, Suit } from './card';
 
-const numberCard = (rank: number, id = `card_${rank}`): Card => ({
+const numberCard = (rank: NumberRank, id = `card_${rank}`): Card => ({
   id,
   suit: Suit.Hearts,
-  rank: rank as any,
+  rank,
 });
 
 const kingCard = (id = 'king_1'): Card => ({
@@ -80,7 +80,7 @@ describe('lane', () => {
       const lane = createLane('l1');
       lane.cards = [
         { numberCard: numberCard(10), attachedFaces: [] },
-        { numberCard: numberCard(11 as any), attachedFaces: [] },
+        { numberCard: numberCard(11), attachedFaces: [] },
       ];
       expect(isLaneSold(lane)).toBe(false);
     });

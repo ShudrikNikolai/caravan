@@ -8,7 +8,7 @@ import { DEFAULT_COUNTRY } from '../consts';
 describe('UserService', () => {
   let userService: UserService;
   let userRepository: jest.Mocked<
-    Pick<UserRepository, 'findUserById' | 'findByUsername' | 'update'>
+    Pick<UserRepository, 'findUserById' | 'findByUsername' | 'updateUserById'>
   >;
   let userDeviceRepository: jest.Mocked<Partial<UserDeviceRepository>>;
 
@@ -24,7 +24,7 @@ describe('UserService', () => {
     userRepository = {
       findUserById: jest.fn(),
       findByUsername: jest.fn(),
-      update: jest.fn(),
+      updateUserById: jest.fn(),
     };
     userDeviceRepository = {};
 
@@ -74,7 +74,7 @@ describe('UserService', () => {
 
   describe('updateById', () => {
     it('возвращает обновлённого пользователя при успешном апдейте', async () => {
-      userRepository.update.mockResolvedValue(sanitizedUser as any);
+      userRepository.updateUserById.mockResolvedValue(sanitizedUser);
 
       const result = await userService.updateById('user-1', {
         username: 'newname',
@@ -84,7 +84,7 @@ describe('UserService', () => {
     });
 
     it('бросает NotFoundException, если запись для апдейта не найдена', async () => {
-      userRepository.update.mockResolvedValue(null);
+      userRepository.updateUserById.mockResolvedValue(null);
 
       await expect(
         userService.updateById('missing-id', { username: 'x' }),

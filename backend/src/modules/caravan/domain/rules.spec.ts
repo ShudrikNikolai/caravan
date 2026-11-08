@@ -7,15 +7,15 @@ import {
   checkWinner,
 } from './rules';
 import { createLane, Lane } from './lane';
-import { Card, Suit } from './card';
+import { Card, NumberRank, Suit } from './card';
 
 const numberCard = (
-  rank: number,
+  rank: NumberRank,
   id = `card_${rank}_${Math.random()}`,
 ): Card => ({
   id,
   suit: Suit.Hearts,
-  rank: rank as any,
+  rank,
 });
 
 const faceCard = (

@@ -47,32 +47,27 @@ export const CreateUserSchema = z.object({
     .nullable(),
 
   birthDate: z
-    .union([z.string().datetime({ offset: true }), z.date()])
+    .string()
+    .datetime({ offset: true })
     .optional()
     .nullable()
-    .transform((val) => {
-      if (val instanceof Date) return val;
-      if (typeof val === 'string') return new Date(val);
-      return val;
-    })
-    .refine((date) => {
-      if (!date) return true;
-      return !isNaN(date.getTime());
+    .refine((value) => {
+      if (!value) return true;
+      return !isNaN(new Date(value).getTime());
     }, 'Invalid date format')
-    .refine((date) => {
-      if (!date) return true;
-      const now = new Date();
-      return date <= now;
+    .refine((value) => {
+      if (!value) return true;
+      return new Date(value) <= new Date();
     }, 'Birth date cannot be in the future')
-    .refine((date) => {
-      if (!date) return true;
+    .refine((value) => {
+      if (!value) return true;
       const now = new Date();
       const thirteenYearsAgo = new Date(
         now.getFullYear() - 13,
         now.getMonth(),
         now.getDate(),
       );
-      return date <= thirteenYearsAgo;
+      return new Date(value) <= thirteenYearsAgo;
     }, 'User must be at least 13 years old'),
 });
 
@@ -106,7 +101,7 @@ export const CreateUserDbSchema = CreateUserSchema.transform((data) => {
   if (data.authMethod) dbData.authMethod = data.authMethod;
   if (data.country) dbData.country = data.country;
   if (data.city) dbData.city = data.city;
-  if (data.birthDate) dbData.birthDate = data.birthDate;
+  if (data.birthDate) dbData.birthDate = new Date(data.birthDate);
 
   return dbData;
 });

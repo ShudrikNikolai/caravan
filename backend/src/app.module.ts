@@ -1,25 +1,31 @@
 import { Module } from '@nestjs/common';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ConfigModule } from './config';
 import { InfrastructureModule } from './infrastructure/infra.module';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
-import { HealthModule } from './modules/health/health.module';
 import { ZodValidationPipe } from 'nestjs-zod';
-import { UserModule } from './modules/user/user.module';
 import { AuthModule } from './modules/auth/auth.module';
-import { CaravanModule } from './modules/caravan/caravan.module';
 import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
-import { JwtAuthGuard } from './modules/auth/guards';
+import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
+import { CaravanModule } from './modules/caravan/caravan.module';
+import { FriendsModule } from './modules/friends/friends.module';
+import { HealthModule } from './modules/health/health.module';
+import { StatsModule } from './modules/stats/stats.module';
+import { UserModule } from './modules/user/user.module';
 
 @Module({
   imports: [
+    EventEmitterModule.forRoot(),
     ConfigModule,
     InfrastructureModule,
     HealthModule,
     UserModule,
     AuthModule,
     CaravanModule,
+    StatsModule,
+    FriendsModule,
   ],
   controllers: [],
   providers: [

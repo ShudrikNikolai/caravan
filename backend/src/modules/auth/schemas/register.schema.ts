@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { createZodDto } from 'nestjs-zod';
 
 export const StrictRegisterSchema = z
   .object({
@@ -21,5 +22,7 @@ export const StrictRegisterSchema = z
     message: "Passwords don't match",
     path: ['confirmPassword'],
   });
+
+export class RegisterDto extends createZodDto(StrictRegisterSchema) {}
 
 export type TStrictRegisterSchema = z.infer<typeof StrictRegisterSchema>;

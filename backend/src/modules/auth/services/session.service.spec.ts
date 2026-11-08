@@ -1,17 +1,36 @@
-// TODO upd and fix
-import { SessionService } from './session.service';
-import { RedisService } from '@/infrastructure/redis/redis.service';
 import { ConfigService } from '@/config';
+import {
+  SessionData,
+  SessionRepository,
+} from '../repositories/session.repository';
+import { SessionService } from './session.service';
 
 describe('SessionService', () => {
   let sessionService: SessionService;
-  let redisService: jest.Mocked<Pick<RedisService, 'get' | 'set' | 'delete'>>;
+  let sessionRepository: jest.Mocked<
+    Pick<
+      SessionRepository,
+      | 'getSession'
+      | 'saveSession'
+      | 'deleteSession'
+      | 'getUserSessionIds'
+      | 'saveUserSessionIds'
+      | 'deleteUserSessionIds'
+      | 'exists'
+      | 'addToBlacklist'
+    >
+  >;
 
   beforeEach(() => {
-    redisService = {
-      get: jest.fn(),
-      set: jest.fn(),
-      delete: jest.fn(),
+    sessionRepository = {
+      getSession: jest.fn(),
+      saveSession: jest.fn(),
+      deleteSession: jest.fn(),
+      getUserSessionIds: jest.fn(),
+      saveUserSessionIds: jest.fn(),
+      deleteUserSessionIds: jest.fn(),
+      exists: jest.fn(),
+      addToBlacklist: jest.fn(),
     };
 
     const configService = {
@@ -20,66 +39,68 @@ describe('SessionService', () => {
 
     sessionService = new SessionService(
       configService as unknown as ConfigService,
-      redisService as unknown as RedisService,
+      sessionRepository as unknown as SessionRepository,
     );
   });
 
   describe('createSession', () => {
-    it('сохраняет сессию и добавляет sid в список сессий пользователя', async () => {
-      redisService.get.mockResolvedValue(null); // список сессий пуст
+    it('saves the session and adds the sid to the user session list', async () => {
+      sessionRepository.getUserSessionIds.mockResolvedValue([]);
 
-      const sid = await sessionService.createSession('user-1', 'sess-fixed');
+      const sid = await sessionService.createSession('user-1', '127.0.0.1');
 
-      expect(sid).toBe('sess-fixed');
-      expect(redisService.set).toHaveBeenCalledWith(
-        'session:sess-fixed',
-        expect.objectContaining({ userId: 'user-1', sid: 'sess-fixed' }),
+      expect(sid).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+      );
+      expect(sessionRepository.saveSession).toHaveBeenCalledWith(
+        sid,
+        expect.objectContaining({ userId: 'user-1', sid }),
         3600,
       );
-      expect(redisService.set).toHaveBeenCalledWith(
-        'user_sessions:user-1',
-        ['sess-fixed'],
+      expect(sessionRepository.saveUserSessionIds).toHaveBeenCalledWith(
+        'user-1',
+        [sid],
         3600,
       );
     });
 
-    it('добавляет новый sid к уже существующему списку сессий', async () => {
-      redisService.get.mockResolvedValue(['old-sid']);
+    it('appends a new sid to an existing session list', async () => {
+      sessionRepository.getUserSessionIds.mockResolvedValue(['old-sid']);
 
-      await sessionService.createSession('user-1', 'new-sid');
+      const sid = await sessionService.createSession('user-1');
 
-      expect(redisService.set).toHaveBeenCalledWith(
-        'user_sessions:user-1',
-        ['old-sid', 'new-sid'],
+      expect(sessionRepository.saveUserSessionIds).toHaveBeenCalledWith(
+        'user-1',
+        ['old-sid', sid],
         3600,
       );
     });
   });
 
   describe('getSession', () => {
-    it('возвращает null, если сессия не найдена', async () => {
-      redisService.get.mockResolvedValue(null);
+    it('returns null when the session is missing', async () => {
+      sessionRepository.getSession.mockResolvedValue(null);
 
-      const result = await sessionService.getSession('missing-sid');
-
-      expect(result).toBeNull();
-      expect(redisService.set).not.toHaveBeenCalled();
+      await expect(
+        sessionService.getSession('missing-sid'),
+      ).resolves.toBeNull();
+      expect(sessionRepository.saveSession).not.toHaveBeenCalled();
     });
 
-    it('обновляет lastActivityAt и продлевает TTL для существующей сессии', async () => {
-      const stored = {
+    it('updates lastActivityAt and extends the TTL', async () => {
+      const stored: SessionData = {
         sid: 'sess-1',
         userId: 'user-1',
         createdAt: '2026-01-01T00:00:00.000Z',
         lastActivityAt: '2026-01-01T00:00:00.000Z',
       };
-      redisService.get.mockResolvedValue(stored);
+      sessionRepository.getSession.mockResolvedValue(stored);
 
       const result = await sessionService.getSession('sess-1');
 
       expect(result?.lastActivityAt).not.toBe('2026-01-01T00:00:00.000Z');
-      expect(redisService.set).toHaveBeenCalledWith(
-        'session:sess-1',
+      expect(sessionRepository.saveSession).toHaveBeenCalledWith(
+        'sess-1',
         expect.objectContaining({ sid: 'sess-1' }),
         3600,
       );
@@ -87,47 +108,50 @@ describe('SessionService', () => {
   });
 
   describe('destroySession', () => {
-    it('ничего не делает, если сессии не существует', async () => {
-      redisService.get.mockResolvedValue(null);
+    it('does nothing when the session is missing', async () => {
+      sessionRepository.getSession.mockResolvedValue(null);
 
       await sessionService.destroySession('missing-sid');
 
-      expect(redisService.delete).not.toHaveBeenCalled();
+      expect(sessionRepository.deleteSession).not.toHaveBeenCalled();
     });
 
-    it('удаляет сессию и вычищает её из списка сессий пользователя', async () => {
-      redisService.get
-        .mockResolvedValueOnce({
-          sid: 'sess-1',
-          userId: 'user-1',
-          createdAt: '',
-          lastActivityAt: '',
-        }) // getSession internal
-        .mockResolvedValueOnce(['sess-1', 'sess-2']); // userSessions list
+    it('removes the session and its id from the user session list', async () => {
+      sessionRepository.getSession.mockResolvedValue({
+        sid: 'sess-1',
+        userId: 'user-1',
+        createdAt: '',
+        lastActivityAt: '',
+      });
+      sessionRepository.getUserSessionIds.mockResolvedValue([
+        'sess-1',
+        'sess-2',
+      ]);
 
       await sessionService.destroySession('sess-1');
 
-      expect(redisService.delete).toHaveBeenCalledWith('session:sess-1');
-      expect(redisService.set).toHaveBeenCalledWith(
-        'user_sessions:user-1',
+      expect(sessionRepository.deleteSession).toHaveBeenCalledWith('sess-1');
+      expect(sessionRepository.saveUserSessionIds).toHaveBeenCalledWith(
+        'user-1',
         ['sess-2'],
         3600,
       );
     });
 
-    it('удаляет ключ списка сессий целиком, если это была последняя сессия', async () => {
-      redisService.get
-        .mockResolvedValueOnce({
-          sid: 'sess-1',
-          userId: 'user-1',
-          createdAt: '',
-          lastActivityAt: '',
-        })
-        .mockResolvedValueOnce(['sess-1']);
+    it('deletes the user session list when the last session is removed', async () => {
+      sessionRepository.getSession.mockResolvedValue({
+        sid: 'sess-1',
+        userId: 'user-1',
+        createdAt: '',
+        lastActivityAt: '',
+      });
+      sessionRepository.getUserSessionIds.mockResolvedValue(['sess-1']);
 
       await sessionService.destroySession('sess-1');
 
-      expect(redisService.delete).toHaveBeenCalledWith('user_sessions:user-1');
+      expect(sessionRepository.deleteUserSessionIds).toHaveBeenCalledWith(
+        'user-1',
+      );
     });
   });
 });

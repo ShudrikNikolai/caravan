@@ -39,10 +39,12 @@ export function dealInitialState(
   const player1: GamePlayer = {
     id: player1Id,
     hand: remaining.splice(0, HAND_SIZE),
+    connected: true,
   };
   const player2: GamePlayer = {
     id: player2Id,
     hand: remaining.splice(0, HAND_SIZE),
+    connected: true,
   };
 
   const now = new Date().toISOString();

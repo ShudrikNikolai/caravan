@@ -12,11 +12,14 @@ import { JwtService } from '@nestjs/jwt';
 import { Server, Socket } from 'socket.io';
 
 import { ConfigService } from '@/config';
-import { JwtPayload } from '@/modules/auth/interfaces/jwt-payload.interface';
+import { extractUserIdFromSocket } from '@/common/ws/socket-auth.util';
 
-import { CaravanService } from './services/caravan.service';
 import { ClientEventSchema } from './schemas/ws-events.schema';
 import { GameState } from './domain/game-state';
+import { Room } from './repositories/game-state.repository';
+import { ApplyGameEventUseCase } from './usecases/apply-game-event.usecase';
+import { ReconnectPlayerUseCase } from './usecases/reconnect-player.usecase';
+import { RegisterDisconnectUseCase } from './usecases/register-disconnect.usecase';
 
 interface CaravanSocket extends Socket {
   data: {
@@ -38,7 +41,9 @@ export class CaravanGateway
   server: Server;
 
   constructor(
-    private readonly caravanService: CaravanService,
+    private readonly applyGameEventUseCase: ApplyGameEventUseCase,
+    private readonly registerDisconnectUseCase: RegisterDisconnectUseCase,
+    private readonly reconnectPlayerUseCase: ReconnectPlayerUseCase,
     private readonly logger: PinoLogger,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
@@ -46,8 +51,12 @@ export class CaravanGateway
     this.logger.setContext(CaravanGateway.name);
   }
 
-  handleConnection(client: CaravanSocket): void {
-    const userId = this.extractUserId(client);
+  async handleConnection(client: CaravanSocket): Promise<void> {
+    const userId = extractUserIdFromSocket(
+      client,
+      this.jwtService,
+      this.configService.auth.jwtSecret,
+    );
 
     if (!userId) {
       this.logger.info(`Rejected unauthenticated connection: ${client.id}`);
@@ -57,14 +66,75 @@ export class CaravanGateway
     }
 
     client.data.userId = userId;
-
-    client.join(userId);
+    void client.join(userId);
 
     this.logger.info(`Client connected: ${userId}`);
+
+    try {
+      const state = await this.reconnectPlayerUseCase.execute(userId);
+
+      if (state) {
+        this.sendGameState(state);
+      }
+    } catch (error: unknown) {
+      this.logger.error(
+        { err: error, userId },
+        'Failed to restore game after reconnect',
+      );
+    }
   }
 
-  handleDisconnect(client: CaravanSocket): void {
-    this.logger.info(`Client disconnected: ${client.data.userId ?? client.id}`);
+  async handleDisconnect(client: CaravanSocket): Promise<void> {
+    const userId = client.data.userId;
+
+    if (!userId) {
+      return;
+    }
+
+    this.logger.info(`Client disconnected: ${userId}`);
+
+    try {
+      const state = await this.registerDisconnectUseCase.execute(userId);
+
+      if (state) {
+        this.sendGameState(state);
+      }
+    } catch (error: unknown) {
+      this.logger.error(
+        { err: error, userId },
+        'Failed to register game disconnect',
+      );
+    }
+  }
+
+  @SubscribeMessage('lobby_subscribe')
+  handleLobbySubscribe(@ConnectedSocket() client: CaravanSocket): void {
+    void client.join('lobby');
+  }
+
+  @SubscribeMessage('lobby_unsubscribe')
+  handleLobbyUnsubscribe(@ConnectedSocket() client: CaravanSocket): void {
+    void client.leave('lobby');
+  }
+
+  notifyRoomCreated(room: Room): void {
+    if (room.visibility !== 'public') {
+      return;
+    }
+
+    this.server.to('lobby').emit('room:created', room);
+  }
+
+  notifyRoomUpdated(room: Room): void {
+    if (room.visibility !== 'public') {
+      return;
+    }
+
+    this.server.to('lobby').emit('room:updated', room);
+  }
+
+  notifyRoomRemoved(roomId: string): void {
+    this.server.to('lobby').emit('room:removed', { roomId });
   }
 
   @SubscribeMessage('game_event')
@@ -86,8 +156,7 @@ export class CaravanGateway
 
     try {
       const event = ClientEventSchema.parse(payload);
-
-      const state = await this.caravanService.applyEvent(userId, event);
+      const state = await this.applyGameEventUseCase.execute(userId, event);
 
       this.sendGameState(state);
     } catch (error) {
@@ -131,48 +200,5 @@ export class CaravanGateway
         };
       }),
     };
-  }
-
-  private extractUserId(client: CaravanSocket): string | null {
-    const token = this.extractAccessTokenFromCookie(client);
-
-    if (!token) {
-      return null;
-    }
-
-    try {
-      const payload = this.jwtService.verify<JwtPayload>(token, {
-        secret: this.configService.auth.jwtSecret,
-      });
-
-      return String(payload.sub);
-    } catch {
-      return null;
-    }
-  }
-
-  private extractAccessTokenFromCookie(client: CaravanSocket): string | null {
-    const cookieHeader = client.handshake.headers.cookie;
-
-    if (!cookieHeader) {
-      return null;
-    }
-
-    const cookie = cookieHeader
-      .split(';')
-      .map((item) => item.trim())
-      .find((item) => item.startsWith('access_token='));
-
-    if (!cookie) {
-      return null;
-    }
-
-    const value = cookie.slice('access_token='.length);
-
-    try {
-      return decodeURIComponent(value);
-    } catch {
-      return value;
-    }
   }
 }

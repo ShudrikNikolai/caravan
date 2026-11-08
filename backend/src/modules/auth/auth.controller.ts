@@ -9,33 +9,49 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
-import type { Response, Request } from 'express';
-import { CurrentUser, Public } from './decorators';
-import type { TLoginSchema } from './schemas/login.schema';
-import { RefreshTokenGuard } from './guards';
-import { AuthService } from './services/auth.service';
-import type { TStrictRegisterSchema } from './schemas/register.schema';
-import { Tokens } from './interfaces/tokens.interface';
+import type { Request, Response } from 'express';
+
 import { MAX_AGE } from './consts';
+import type { Tokens } from './interfaces/tokens.interface';
+import { ChangePasswordDto } from './schemas/change-password.schema';
+import { LoginDto } from './schemas/login.schema';
+import { RegisterDto } from './schemas/register.schema';
+import { ChangePasswordUseCase } from './usecases/change-password.usecase';
+import { GetProfileUseCase } from './usecases/get-profile.usecase';
+import { GetSessionsUseCase } from './usecases/get-sessions.usecase';
+import { LoginUseCase } from './usecases/login.usecase';
+import { LogoutUseCase } from './usecases/logout.usecase';
+import { RefreshTokensUseCase } from './usecases/refresh-tokens.usecase';
+import { RegisterUseCase } from './usecases/register.usecase';
+import { CurrentUser } from './decorators/current-user.decorator';
+import { Public } from './decorators/public.decorator';
+import { RefreshTokenGuard } from './guards/refresh-token.guard';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly loginUseCase: LoginUseCase,
+    private readonly registerUseCase: RegisterUseCase,
+    private readonly refreshTokensUseCase: RefreshTokensUseCase,
+    private readonly logoutUseCase: LogoutUseCase,
+    private readonly changePasswordUseCase: ChangePasswordUseCase,
+    private readonly getSessionsUseCase: GetSessionsUseCase,
+    private readonly getProfileUseCase: GetProfileUseCase,
+  ) {}
 
   @Public()
   @Post('login')
   async login(
-    @Body() loginSchema: TLoginSchema,
+    @Body() loginSchema: LoginDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.authService.login(
+    const result = await this.loginUseCase.execute(
       loginSchema,
       req.ip ?? '',
       req.headers['user-agent'],
     );
 
-    // Устанавливаем cookies
     this.setAuthCookies(res, result.tokens);
 
     return { message: 'ok', user: result.user };
@@ -44,10 +60,10 @@ export class AuthController {
   @Public()
   @Post('register')
   async register(
-    @Body() registerSchema: TStrictRegisterSchema,
+    @Body() registerSchema: RegisterDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.authService.register(registerSchema);
+    const result = await this.registerUseCase.execute(registerSchema);
 
     this.setAuthCookies(res, result.tokens);
 
@@ -58,12 +74,17 @@ export class AuthController {
   @UseGuards(RefreshTokenGuard)
   @ApiBearerAuth()
   async refresh(
-    @CurrentUser('id') userId: string,
-    @Body('refreshTokenId') refreshTokenId: string,
+    @CurrentUser('userId') userId: string,
+    @CurrentUser('refreshTokenId') refreshTokenId: string,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const tokens = await this.authService.refreshTokens(refreshTokenId, userId);
+    const tokens = await this.refreshTokensUseCase.execute(
+      refreshTokenId,
+      userId,
+    );
+
     this.setAuthCookies(res, tokens);
+
     return { message: 'ok' };
   }
 
@@ -73,9 +94,8 @@ export class AuthController {
     @CurrentUser('id') userId: string,
     @Res({ passthrough: true }) res: Response,
   ) {
-    await this.authService.logout(userId);
+    await this.logoutUseCase.execute(userId);
 
-    // Очищаем cookies
     this.clearAuthCookies(res);
 
     return { message: 'Logged out successfully' };
@@ -85,25 +105,30 @@ export class AuthController {
   @ApiBearerAuth()
   async changePassword(
     @CurrentUser('id') userId: string,
-    @Body('username') username: string,
-    @Body('oldpass') oldpass: string,
-    @Body('newpass') newpass: string,
+    @Body() dto: ChangePasswordDto,
   ) {
-    await this.authService.changePassword(userId, username, oldpass, newpass);
+    await this.changePasswordUseCase.execute(
+      userId,
+      dto.username,
+      dto.oldpass,
+      dto.newpass,
+    );
+
     return { message: 'Password changed successfully' };
   }
 
   @Get('sessions')
   @ApiBearerAuth()
   async getActiveSessions(@CurrentUser('id') userId: string) {
-    const sessions = await this.authService.getActiveSessions(userId);
+    const sessions = await this.getSessionsUseCase.execute(userId);
+
     return { sessions };
   }
 
   @Get('me')
   @ApiBearerAuth()
   async getProfile(@CurrentUser('id') userId: string) {
-    return this.authService.getUserProfile(userId);
+    return this.getProfileUseCase.execute(userId);
   }
 
   private clearAuthCookies(res: Response) {

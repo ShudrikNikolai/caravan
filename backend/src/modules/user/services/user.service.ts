@@ -27,8 +27,21 @@ export class UserService {
     id: string,
     data: TUpdateUserSchema,
   ): Promise<IUserResponseSchema | null> {
-    const user = await this.userRepository.updateUserById(id, data);
+    const { birthDate, ...rest } = data;
+    const updateData = {
+      ...rest,
+      ...(birthDate ? { birthDate: new Date(birthDate) } : {}),
+    };
+    const user = await this.userRepository.updateUserById(id, updateData);
     if (!user) throw new NotFoundException(ERRORS.USER_NOT_FOUND);
     return user;
+  }
+
+  search(query: string, excludeId?: string): Promise<IUserResponseSchema[]> {
+    return this.userRepository.search(query, excludeId);
+  }
+
+  findManyByIds(ids: string[]): Promise<IUserResponseSchema[]> {
+    return this.userRepository.findByIds(ids);
   }
 }

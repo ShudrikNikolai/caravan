@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { createZodDto } from 'nestjs-zod';
 
 export const UpdateUserSchema = z.object({
   username: z
@@ -24,16 +25,12 @@ export const UpdateUserSchema = z.object({
     .optional(),
 
   birthDate: z
-    .union([
-      z
-        .string()
-        .datetime({ offset: true })
-        .transform((str) => new Date(str)),
-      z.date(),
-    ])
+    .string()
+    .datetime({ offset: true })
     .optional()
-    .refine((date) => {
-      if (!date) return true;
+    .refine((value) => {
+      if (!value) return true;
+      const date = new Date(value);
       // Проверка, что дата не в будущем
       const now = new Date();
       if (date > now) return false;
@@ -49,6 +46,8 @@ export const UpdateUserSchema = z.object({
       return true;
     }, 'User must be at least 13 years old and birth date cannot be in the future'),
 });
+
+export class UpdateUserDto extends createZodDto(UpdateUserSchema) {}
 
 // Тип для использования в контроллерах/сервисах
 export type TUpdateUserSchema = z.infer<typeof UpdateUserSchema>;
@@ -67,16 +66,3 @@ export function validateUpdateUser(data: unknown): TUpdateUserSchema {
 export function safeValidateUpdateUser(data: unknown) {
   return UpdateUserSchema.safeParse(data);
 }
-
-// Пример использования с преобразованием для базы данных
-export const UpdateUserDbSchema = UpdateUserSchema.transform((data) => {
-  // Убираем поля, которые не нужно обновлять
-  const dbData: Partial<TUpdateUserSchema> = {};
-
-  if (data.username) dbData.username = data.username;
-  if (data.country) dbData.country = data.country;
-  if (data.city) dbData.city = data.city;
-  if (data.birthDate) dbData.birthDate = data.birthDate;
-
-  return dbData;
-});
