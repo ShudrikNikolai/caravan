@@ -1,4 +1,4 @@
-import { Alert, PageShell, panelClass } from './ui';
+import { Alert, PageShell, panelClass } from '@/components/ui';
 
 export function FullScreenSpinner() {
   return (

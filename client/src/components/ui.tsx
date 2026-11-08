@@ -53,3 +53,27 @@ export function Alert({ children }: { children: ReactNode }) {
     </div>
   );
 }
+
+export function EmptyState({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-zinc-300 px-6 py-10 text-center dark:border-white/15">
+      <p className="text-base font-medium text-zinc-900 dark:text-zinc-50">
+        {title}
+      </p>
+      {description && (
+        <p className="max-w-sm text-sm text-zinc-500 dark:text-zinc-400">
+          {description}
+        </p>
+      )}
+      {children}
+    </div>
+  );
+}

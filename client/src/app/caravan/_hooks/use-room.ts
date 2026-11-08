@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ApiError, caravanApi, GameStateDto, Room } from '@/lib/api';
 
 const POLL_INTERVAL_MS = 3000;
@@ -11,6 +11,31 @@ export function useRoom(
   const [room, setRoom] = useState<Room | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const queryLoaded = useRef(false);
+
+  useEffect(() => {
+    if (!enabled || queryLoaded.current) {
+      return;
+    }
+
+    const idFromQuery = new URLSearchParams(window.location.search).get('room');
+
+    if (!idFromQuery) {
+      return;
+    }
+
+    queryLoaded.current = true;
+
+    void (async () => {
+      try {
+        setRoom(await caravanApi.getRoom(idFromQuery));
+      } catch (e) {
+        setError(
+          e instanceof ApiError ? e.message : 'Не удалось загрузить комнату',
+        );
+      }
+    })();
+  }, [enabled]);
 
   const errorMessage = (e: unknown, fallback: string) =>
     e instanceof ApiError ? e.message : fallback;
@@ -54,6 +79,13 @@ export function useRoom(
     }
   };
 
+  const reset = () => {
+    setRoom(null);
+    setRoomId('');
+    setError(null);
+    setBusy(false);
+  };
+
   // Поллинг, пока игра не началась
   const currentRoomId = room?.id;
   useEffect(() => {
@@ -63,7 +95,25 @@ export function useRoom(
 
     const tick = async () => {
       try {
+        const activeGame = await caravanApi.me().catch((e: unknown) => {
+          if (e instanceof ApiError && e.status === 404) {
+            return null;
+          }
+
+          throw e;
+        });
+
+        if (cancelled) {
+          return;
+        }
+
+        if (activeGame) {
+          onStarted(activeGame);
+          return;
+        }
+
         const updated = await caravanApi.getRoom(currentRoomId);
+
         if (!cancelled) {
           setRoom(updated);
           setError(null);
@@ -75,14 +125,27 @@ export function useRoom(
       }
     };
 
-    tick();
-    const interval = setInterval(tick, POLL_INTERVAL_MS);
+    void tick();
+    const interval = setInterval(() => {
+      void tick();
+    }, POLL_INTERVAL_MS);
 
     return () => {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [enabled, currentRoomId]);
+  }, [enabled, currentRoomId, onStarted]);
 
-  return { roomId, setRoomId, room, error, busy, create, join, find, start };
+  return {
+    roomId,
+    setRoomId,
+    room,
+    error,
+    busy,
+    create,
+    join,
+    find,
+    start,
+    reset,
+  };
 }

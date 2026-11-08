@@ -14,12 +14,15 @@ export const RegisterSchema = z
       .min(3, 'Минимум 3 символа')
       .max(64)
       .regex(/^[a-zA-Z0-9_-]+$/, 'Только буквы, цифры, _ и -'),
-    password: z.string().min(4, 'Минимум 8 символов').max(64),
-    // .regex(/[A-Z]/, 'Нужна заглавная буква')
-    // .regex(/[a-z]/, 'Нужна строчная буква')
-    // .regex(/[0-9]/, 'Нужна цифра')
-    // .regex(/[!@#$%^&*(),.?":{}|<>]/, 'Нужен спецсимвол'),
-    confirmPassword: z.string(),
+    password: z
+      .string()
+      .min(8, 'Минимум 8 символов')
+      .max(100)
+      .regex(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+        'Нужны заглавная, строчная буква, цифра и спецсимвол',
+      ),
+    confirmPassword: z.string().min(8, 'Повторите пароль'),
     country: z.string().min(2).max(64).optional().or(z.literal('')),
     city: z.string().min(2).max(64).optional().or(z.literal('')),
   })

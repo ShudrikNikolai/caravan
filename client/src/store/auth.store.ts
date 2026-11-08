@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { api, ApiError, PublicUser, RegisterPayload } from '@/lib/api';
+import { useFriendsStore } from './friends.store';
 
 interface AuthState {
   user: PublicUser | null;
@@ -73,6 +74,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       await api.logout();
     } finally {
+      useFriendsStore.getState().reset();
       set({
         user: null,
         status: 'unauthenticated',

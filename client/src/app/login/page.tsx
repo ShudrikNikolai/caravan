@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -14,6 +14,7 @@ import {
 } from '@heroui/react';
 import { useRouter } from 'next/navigation';
 import { LoginForm, LoginSchema } from '@/lib/schemas';
+import { stripSensitiveQuery } from '@/lib/security';
 import { useAuthStore } from '@/store/auth.store';
 
 const fieldClass = 'flex w-full flex-col gap-1.5';
@@ -64,9 +65,21 @@ function EyeIcon({ off }: { off?: boolean }) {
 export default function LoginPage() {
   const router = useRouter();
   const login = useAuthStore((s) => s.login);
+  const clearError = useAuthStore((s) => s.clearError);
   const error = useAuthStore((s) => s.error);
   const status = useAuthStore((s) => s.status);
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    stripSensitiveQuery();
+    clearError();
+  }, [clearError]);
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.replace('/');
+    }
+  }, [status, router]);
 
   const {
     control,
@@ -77,7 +90,7 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginForm) => {
     try {
       await login(data.email, data.password);
-      router.push('/');
+      router.replace('/');
     } catch {
       // ошибка уже в сторе
     }
@@ -108,7 +121,12 @@ export default function LoginPage() {
 
         <Card.Content className="p-0">
           <form
-            onSubmit={handleSubmit(onSubmit)}
+            method="post"
+            action="/login"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleSubmit(onSubmit)(event);
+            }}
             className="flex flex-col gap-5"
             noValidate
           >
@@ -120,7 +138,6 @@ export default function LoginPage() {
                   fullWidth
                   autoFocus
                   type="email"
-                  name={field.name}
                   autoComplete="email"
                   className={fieldClass}
                   isInvalid={!!errors.email}
@@ -144,7 +161,6 @@ export default function LoginPage() {
                 <TextField
                   fullWidth
                   type={showPassword ? 'text' : 'password'}
-                  name={field.name}
                   autoComplete="current-password"
                   className={fieldClass}
                   isInvalid={!!errors.password}

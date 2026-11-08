@@ -1,11 +1,12 @@
 import type { CaravanCard } from '@/lib/api';
 import { cardLabel, PlayingCard } from './playing-card';
-import { btn, panelClass } from './ui';
+import { btn, panelClass } from '@/components/ui';
 
 type Props = {
   hand: (CaravanCard | null)[];
   selectedCard?: CaravanCard;
   isMyTurn: boolean;
+  blockedMessage?: string | null;
   onSelect: (cardId: string | null) => void;
   onDiscard: () => void;
   onEndTurn: () => void;
@@ -15,17 +16,20 @@ export function PlayerHand({
   hand,
   selectedCard,
   isMyTurn,
+  blockedMessage,
   onSelect,
   onDiscard,
   onEndTurn,
 }: Props) {
-  const hint = selectedCard
-    ? typeof selectedCard.rank === 'number'
-      ? `${cardLabel(selectedCard)}: кликните по своей дорожке, чтобы сыграть карту.`
-      : `${cardLabel(selectedCard)}: кликните по карте-цели на любой дорожке.`
-    : isMyTurn
-      ? 'Выберите карту в руке.'
-      : 'Ждём хода соперника…';
+  const hint = blockedMessage
+    ? blockedMessage
+    : selectedCard
+      ? typeof selectedCard.rank === 'number'
+        ? `${cardLabel(selectedCard)}: кликните по своей дорожке, чтобы сыграть карту.`
+        : `${cardLabel(selectedCard)}: кликните по карте-цели на любой дорожке.`
+      : isMyTurn
+        ? 'Выберите карту в руке.'
+        : 'Ждём хода соперника…';
 
   return (
     <section className={`${panelClass} flex flex-col gap-5 p-4 sm:p-6`}>
@@ -39,6 +43,7 @@ export function PlayerHand({
               type="button"
               aria-pressed={selected}
               aria-label={cardLabel(card)}
+              disabled={!!blockedMessage}
               onClick={() => onSelect(selected ? null : card.id)}
               className={`w-16 rounded-lg transition duration-150 sm:w-24 ${
                 selected
@@ -58,7 +63,7 @@ export function PlayerHand({
           <button
             type="button"
             className={btn('secondary', 'sm')}
-            disabled={!selectedCard || !isMyTurn}
+            disabled={!selectedCard || !isMyTurn || !!blockedMessage}
             onClick={onDiscard}
           >
             Сбросить выбранную
@@ -66,7 +71,7 @@ export function PlayerHand({
           <button
             type="button"
             className={btn('primary', 'sm')}
-            disabled={!isMyTurn}
+            disabled={!isMyTurn || !!blockedMessage}
             onClick={onEndTurn}
           >
             Закончить ход

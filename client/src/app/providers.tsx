@@ -1,7 +1,10 @@
 'use client';
 
+import { useEffect } from 'react';
 import { I18nProvider } from '@heroui/react';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
+import { FriendsSocketProvider } from '@/components/friends-socket-provider';
+import { stripSensitiveQuery } from '@/lib/security';
 
 export function Providers({
   lang,
@@ -10,6 +13,10 @@ export function Providers({
   lang: string;
   children: React.ReactNode;
 }) {
+  useEffect(() => {
+    stripSensitiveQuery();
+  }, []);
+
   return (
     <I18nProvider locale={lang}>
       <NextThemesProvider
@@ -18,6 +25,7 @@ export function Providers({
         enableSystem
         disableTransitionOnChange
       >
+        <FriendsSocketProvider />
         {children}
       </NextThemesProvider>
     </I18nProvider>
