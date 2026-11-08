@@ -22,13 +22,15 @@
     "migration:run": "yarn typeorm migration:run -d src/infrastructure/database/data-source.ts",
     "migration:revert": "yarn typeorm migration:revert -d src/infrastructure/database/data-source.ts",
     "migration:generate": "yarn typeorm migration:generate -d src/infrastructure/database/data-source.ts",
-    "migration:create": "npm run typeorm -- migration:create"
+    "migration:create": "npm run typeorm -- migration:create",
+    "stats:backfill": "ts-node -r tsconfig-paths/register src/modules/stats/scripts/backfill.ts"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.0.1",
+    "@nestjs/event-emitter": "3.1.0",
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
@@ -102,6 +104,10 @@
     ],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
+    "moduleNameMapper": {
+      "^@/infra/(.*)$": "<rootDir>/infrastructure/$1",
+      "^@/(.*)$": "<rootDir>/$1"
+    },
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },

@@ -4,6 +4,7 @@ import {
   TAppConfig,
   TAuthConfig,
   TDataBaseConfig,
+  TGameConfig,
   TLoggerConfig,
   TRedisConfig,
   TSwaggerConfig,
@@ -36,6 +37,10 @@ export class ConfigService {
 
   get auth(): TAuthConfig {
     return this.getOrThrow('auth');
+  }
+
+  get game(): TGameConfig {
+    return this.getOrThrow('game');
   }
 
   get isDev(): boolean {

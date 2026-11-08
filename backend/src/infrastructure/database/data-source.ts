@@ -5,9 +5,20 @@ import { User } from '@/modules/user/entities/user.entity';
 import { UserDevice } from '@/modules/user/entities/device.entity';
 import { RefreshToken } from '@/modules/auth/entities/refresh-token.entity';
 import { GameHistory } from '@/modules/caravan/entities/game-history.entity';
+import { Friendship } from '@/modules/friends/entities/friendship.entity';
+import { ProcessedGame } from '@/modules/stats/entities/processed-game.entity';
+import { UserStats } from '@/modules/stats/entities/user-stats.entity';
 import { join } from 'path';
 
-const entities = [User, UserDevice, RefreshToken, GameHistory];
+const entities = [
+  User,
+  UserDevice,
+  RefreshToken,
+  GameHistory,
+  UserStats,
+  ProcessedGame,
+  Friendship,
+];
 
 const dataSource = new DataSource({
   type: 'postgres',

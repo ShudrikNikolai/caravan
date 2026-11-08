@@ -42,6 +42,10 @@ export class RedisService implements OnModuleDestroy {
   }
 
   async onModuleDestroy() {
+    if (!this.client.isOpen) {
+      return;
+    }
+
     await this.client.quit();
     this.logger.info('Redis connection closed');
   }
@@ -101,6 +105,97 @@ export class RedisService implements OnModuleDestroy {
       return await this.client.ttl(key);
     } catch (error) {
       this.logger.error(`Failed to get TTL for key ${key}`, error);
+      throw error;
+    }
+  }
+
+  async setNx(key: string, value: unknown, ttl?: number): Promise<boolean> {
+    try {
+      const serialized =
+        typeof value === 'string' ? value : JSON.stringify(value);
+      const result = ttl
+        ? await this.client.set(key, serialized, { NX: true, EX: ttl })
+        : await this.client.set(key, serialized, { NX: true });
+
+      return result === 'OK';
+    } catch (error) {
+      this.logger.error(`Failed to set NX key ${key}`, error);
+      throw error;
+    }
+  }
+
+  async zAdd(key: string, score: number, member: string): Promise<void> {
+    try {
+      await this.client.zAdd(key, { score, value: member });
+    } catch (error) {
+      this.logger.error(`Failed to add to sorted set ${key}`, error);
+      throw error;
+    }
+  }
+
+  async zRangeByScore(
+    key: string,
+    min: number,
+    max: number,
+  ): Promise<string[]> {
+    try {
+      return await this.client.zRangeByScore(key, min, max);
+    } catch (error) {
+      this.logger.error(`Failed to read sorted set ${key}`, error);
+      throw error;
+    }
+  }
+
+  async zRem(key: string, member: string): Promise<void> {
+    try {
+      await this.client.zRem(key, member);
+    } catch (error) {
+      this.logger.error(`Failed to remove from sorted set ${key}`, error);
+      throw error;
+    }
+  }
+
+  async zRevRange(key: string, start: number, stop: number): Promise<string[]> {
+    try {
+      return await this.client.zRange(key, start, stop, { REV: true });
+    } catch (error) {
+      this.logger.error(`Failed to read reversed sorted set ${key}`, error);
+      throw error;
+    }
+  }
+
+  async sAdd(key: string, member: string): Promise<void> {
+    try {
+      await this.client.sAdd(key, member);
+    } catch (error) {
+      this.logger.error(`Failed to add to set ${key}`, error);
+      throw error;
+    }
+  }
+
+  async sRem(key: string, member: string): Promise<void> {
+    try {
+      await this.client.sRem(key, member);
+    } catch (error) {
+      this.logger.error(`Failed to remove from set ${key}`, error);
+      throw error;
+    }
+  }
+
+  async sMembers(key: string): Promise<string[]> {
+    try {
+      return await this.client.sMembers(key);
+    } catch (error) {
+      this.logger.error(`Failed to read set ${key}`, error);
+      throw error;
+    }
+  }
+
+  async sCard(key: string): Promise<number> {
+    try {
+      return await this.client.sCard(key);
+    } catch (error) {
+      this.logger.error(`Failed to read set size ${key}`, error);
       throw error;
     }
   }

@@ -27,10 +27,10 @@ async function bootstrap() {
     origin: config.app.allowedOrigin,
     credentials: true,
   });
-
+  // app.set('trust proxy', 1);
   setupSwagger(app, config, logger);
 
   await app.listen(config.app.port);
   logger.log(`Server is starting: http://127.0.0.1:${config.app.port}`);
 }
-bootstrap();
+void bootstrap();

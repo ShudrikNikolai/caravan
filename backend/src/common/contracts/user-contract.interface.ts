@@ -19,7 +19,7 @@ export interface IChangePasswordData {
   newpass: string;
 }
 
-export interface IUserExternal {
+export interface IUserAuthContract {
   findUserById(id: string): Promise<IUserContract | null>;
   findByUsername(username: string): Promise<IUserContract | null>;
   updateUserPassword(data: IChangePasswordData): Promise<IUserContract | null>;
@@ -31,3 +31,5 @@ export interface IUserExternal {
     password: string,
   ): Promise<IUserContract | null>;
 }
+
+export const USER_AUTH_SERVICE = Symbol('USER_AUTH_SERVICE');

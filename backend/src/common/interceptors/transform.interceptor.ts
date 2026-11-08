@@ -13,6 +13,7 @@ import {
   IQueryParams,
   IRawPaginatedResult,
 } from '../interfaces/api-response.interface';
+import { redactQueryParams } from '../utils/redact.util';
 
 @Injectable()
 export class TransformInterceptor<T> implements NestInterceptor {
@@ -87,14 +88,7 @@ export class TransformInterceptor<T> implements NestInterceptor {
   private extractRelevantQueryParams(
     queryParams: IQueryParams,
   ): Record<string, unknown> | null {
-    const relevantParams: Record<string, unknown> = {};
-    Object.keys(queryParams).forEach((key) => {
-      const value = queryParams[key];
-      if (value !== undefined && value !== '') {
-        relevantParams[key] = value;
-      }
-    });
-    return Object.keys(relevantParams).length > 0 ? relevantParams : null;
+    return redactQueryParams(queryParams);
   }
 
   private isApiResponse(data: unknown): data is IApiResponse<T> {

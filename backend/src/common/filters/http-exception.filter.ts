@@ -10,6 +10,7 @@ import {
 import { Response, Request } from 'express';
 import { PinoLogger } from 'nestjs-pino';
 import { API_RESPONSE_ERROR } from '../utils/const.util';
+import { redactQueryParams } from '../utils/redact.util';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -63,7 +64,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         status,
         message,
         params: request.params,
-        query: request.query,
+        query: redactQueryParams(request.query),
       },
       `[${request.method}] ${request.url}`,
     );

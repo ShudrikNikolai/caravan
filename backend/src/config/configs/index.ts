@@ -3,6 +3,7 @@ import { SwaggerConfig } from './swagger.config';
 import { RedisConfig } from './redis.config';
 import { DataBaseConfig } from './database.config';
 import { AuthConfig } from './auth.config';
+import { GameConfig } from './game.config';
 import { LoggerConfig } from './logger.config';
 
 export {
@@ -11,6 +12,7 @@ export {
   RedisConfig,
   DataBaseConfig,
   AuthConfig,
+  GameConfig,
   LoggerConfig,
 };
 
@@ -20,6 +22,7 @@ export const Configs = [
   RedisConfig,
   DataBaseConfig,
   AuthConfig,
+  GameConfig,
   LoggerConfig,
 ] as const;
 
@@ -28,6 +31,7 @@ import type { TSwaggerConfig } from './swagger.config';
 import type { TRedisConfig } from './redis.config';
 import type { TDataBaseConfig } from './database.config';
 import type { TAuthConfig } from './auth.config';
+import type { TGameConfig } from './game.config';
 import type { TLoggerConfig } from './logger.config';
 
 export type {
@@ -36,6 +40,7 @@ export type {
   TRedisConfig,
   TDataBaseConfig,
   TAuthConfig,
+  TGameConfig,
   TLoggerConfig,
 };
 
@@ -45,5 +50,6 @@ export interface ConfigMap {
   redis: TRedisConfig;
   database: TDataBaseConfig;
   auth: TAuthConfig;
+  game: TGameConfig;
   logger: TLoggerConfig;
 }

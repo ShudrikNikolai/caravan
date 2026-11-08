@@ -1,55 +1,88 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { RedisService } from './redis.service';
+import * as redis from 'redis';
+import { PinoLogger } from 'nestjs-pino';
 import { ConfigService } from '@/config';
+import { RedisService } from './redis.service';
 
 describe('RedisService', () => {
   let service: RedisService;
+  let client: jest.Mocked<
+    Pick<
+      redis.RedisClientType,
+      | 'on'
+      | 'connect'
+      | 'quit'
+      | 'set'
+      | 'setEx'
+      | 'get'
+      | 'del'
+      | 'exists'
+      | 'ttl'
+    >
+  >;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        RedisService,
-        {
-          provide: ConfigService,
-          useValue: {
-            redis: {
-              host: 'localhost',
-              port: 6379,
-              password: '',
-              db: 0,
-            },
-          },
-        },
-      ],
-    }).compile();
+  beforeEach(() => {
+    client = {
+      on: jest.fn(),
+      connect: jest.fn(),
+      quit: jest.fn(),
+      set: jest.fn(),
+      setEx: jest.fn(),
+      get: jest.fn(),
+      del: jest.fn(),
+      exists: jest.fn(),
+      ttl: jest.fn(),
+    };
 
-    service = module.get<RedisService>(RedisService);
+    jest
+      .spyOn(redis, 'createClient')
+      .mockReturnValue(client as unknown as redis.RedisClientType);
+
+    const configService = {
+      redis: {
+        host: 'localhost',
+        port: 6379,
+        password: '',
+        db: 0,
+        url: 'redis://localhost:6379',
+      },
+    } as unknown as ConfigService;
+
+    const logger = {
+      setContext: jest.fn(),
+      info: jest.fn(),
+      error: jest.fn(),
+    } as unknown as PinoLogger;
+
+    service = new RedisService(configService, logger);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
-  it('should set and get value', async () => {
-    const key = 'test:key';
+  it('sets and gets JSON values', async () => {
     const value = { data: 'test' };
 
-    await service.set(key, value);
-    const result: { data: string } | null = await service.get(key);
+    await service.set('test:key', value);
+    client.get.mockResolvedValue(JSON.stringify(value));
 
-    expect(result).toEqual(value);
-    await service.delete(key);
+    await expect(service.get('test:key')).resolves.toEqual(value);
+    expect(client.set).toHaveBeenCalledWith('test:key', JSON.stringify(value));
   });
 
-  it('should handle TTL', async () => {
-    const key = 'test:ttl';
-    const value = 'test';
-    const ttl = 10;
+  it('sets TTL values with setEx', async () => {
+    await service.set('test:ttl', 'value', 10);
 
-    await service.set(key, value, ttl);
-    const result = await service.ttl(key);
+    expect(client.setEx).toHaveBeenCalledWith('test:ttl', 10, 'value');
+  });
 
-    expect(result).toBeLessThanOrEqual(ttl);
-    await service.delete(key);
+  it('returns null for missing keys', async () => {
+    client.get.mockResolvedValue(null);
+
+    await expect(service.get('missing')).resolves.toBeNull();
   });
 });
