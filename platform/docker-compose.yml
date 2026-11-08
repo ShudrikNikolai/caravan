@@ -15,6 +15,12 @@ services:
       POSTGRES_USER: ${DB_USERNAME:-root}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-root}
       POSTGRES_DB: ${DB_DATABASE:-dbdev}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-root} -d ${DB_DATABASE:-dbdev}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
     volumes:
       - postgres_data:/var/lib/postgresql
     networks: [data]
@@ -23,6 +29,11 @@ services:
     image: redis:8.0-alpine
     container_name: caravan-redis
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
     volumes:
       - redis_data:/data
     networks: [data]
@@ -45,10 +56,13 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
 
+      ALLOWED_ORIGIN: http://frontend:3000
       NODE_ENV: production
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks: [public, data]
 
   frontend:
@@ -116,7 +130,7 @@ services:
       - "127.0.0.1:9090:9090"
     depends_on:
       - cadvisor
-    networks: [monitoring]
+    networks: [monitoring, public]
 
   grafana:
     image: grafana/grafana:11.6.0
@@ -136,7 +150,7 @@ services:
     networks: [monitoring]
 
   uptime-kuma:
-    image: louislam/uptime-kuma:1
+    image: louislam/uptime-kuma:2.5.9
     container_name: caravan-uptime-kuma
     restart: unless-stopped
     volumes:

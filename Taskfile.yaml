@@ -9,7 +9,7 @@ tasks:
   docker:up:
     desc: Start all services
     cmds:
-      - docker compose -f platform/docker-compose.yml up -d
+      - docker compose -f platform/docker-compose.yml up -d --wait
       - task db:migrate
 
   db:migrate:
